@@ -23,6 +23,11 @@ object AppDestinations {
     const val Login = "login"
 
     /**
+     * Ruta de la pantalla de registro.
+     */
+    const val Register = "register"
+
+    /**
      * Patrón de ruta de la pantalla principal.
      *
      * Incluye el argumento dinámico `userType`, que permite adaptar

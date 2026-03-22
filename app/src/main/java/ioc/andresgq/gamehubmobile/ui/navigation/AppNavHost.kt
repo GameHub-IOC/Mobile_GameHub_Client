@@ -26,6 +26,9 @@ import ioc.andresgq.gamehubmobile.ui.screens.home.HomeViewModelFactory
 import ioc.andresgq.gamehubmobile.ui.screens.login.LoginRoute
 import ioc.andresgq.gamehubmobile.ui.screens.login.LoginViewModel
 import ioc.andresgq.gamehubmobile.ui.screens.login.LoginViewModelFactory
+import ioc.andresgq.gamehubmobile.ui.screens.register.RegisterRoute
+import ioc.andresgq.gamehubmobile.ui.screens.register.RegisterViewModel
+import ioc.andresgq.gamehubmobile.ui.screens.register.RegisterViewModelFactory
 
 /**
  * Host principal de navegación de la aplicación.
@@ -87,6 +90,10 @@ fun AppNavHost(
          * Aquí se crea el [LoginViewModel] usando su factoría y se pasa a [LoginRoute].
          * Si el login es correcto, se navega a la home con el tipo de usuario
          * codificado en la ruta.
+         *
+         * @param authRepository repositorio de autenticación usado para iniciar sesión.
+         * @param onCloseApp callback que permite cerrar la aplicación desde la pantalla principal.
+         * @param onNavigateToRegister callback que permite navegar a la pantalla de registro.
          */
         composable(AppDestinations.Login) {
             val loginViewModel: LoginViewModel = viewModel(
@@ -96,10 +103,33 @@ fun AppNavHost(
                 viewModel = loginViewModel,
                 onLoginSuccess = { session ->
                     navController.navigate(AppDestinations.homeRoute(session.userType)) {
-                        /**
-                         * Elimina la pantalla de login del back stack para evitar que
-                         * el usuario vuelva a ella después de autenticarse.
-                         */
+                        popUpTo(AppDestinations.Login) { inclusive = true }
+                    }
+                },
+                onNavigateToRegister = {
+                    navController.navigate(AppDestinations.Register)
+                }
+            )
+        }
+
+
+        /**
+         * Destino de la pantalla de registro.
+         * Similar al login, se crea el [RegisterViewModel] con su factoría y se pasa a [RegisterRoute].
+         * Si el registro es correcto, se navega a la home con el tipo de usuario
+         * codificado en la ruta.
+         *
+         * @param authRepository repositorio de autenticación usado para registrar al usuario.
+         * @param onCloseApp callback que permite cerrar la aplicación desde la pantalla principal.
+         */
+        composable(AppDestinations.Register) {
+            val registerViewModel: RegisterViewModel = viewModel(
+                factory = RegisterViewModelFactory(authRepository)
+            )
+            RegisterRoute(
+                viewModel = registerViewModel,
+                onLoginSuccess = { session ->
+                    navController.navigate(AppDestinations.homeRoute(session.userType)) {
                         popUpTo(AppDestinations.Login) { inclusive = true }
                     }
                 }

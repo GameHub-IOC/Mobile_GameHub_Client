@@ -1,10 +1,11 @@
-package ioc.andresgq.gamehubmobile.ui.screens.login
+package ioc.andresgq.gamehubmobile.ui.screens.register
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -17,16 +18,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import ioc.andresgq.gamehubmobile.data.model.UserSession
 import ioc.andresgq.gamehubmobile.ui.state.UiState
 
 @Composable
-fun LoginRoute(
-    viewModel: LoginViewModel,
-    onLoginSuccess: (UserSession) -> Unit,
-    onNavigateToRegister: () -> Unit,
+fun RegisterRoute(
+    viewModel: RegisterViewModel,
+    onLoginSuccess: (UserSession) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -36,26 +37,32 @@ fun LoginRoute(
         }
     }
 
-    LoginScreen(
+    RegisterScreen(
         username = viewModel.username,
         password = viewModel.password,
+        email = viewModel.email,
+        confirmPassword = viewModel.confirmPassword,
         uiState = uiState,
         onUsernameChange = viewModel::onUsernameChange,
         onPasswordChange = viewModel::onPasswordChange,
-        onNavigateToRegister = onNavigateToRegister,
-        onLoginClick = viewModel::login,
-        onDismissError = viewModel::clearError,
+        onEmailChange = viewModel::onEmailChange,
+        onConfirmPasswordChange = viewModel::onConfirmPasswordChange,
+        onLoginClick = viewModel::register,
+        onDismissError = viewModel::clearError
     )
 }
 
 @Composable
-fun LoginScreen(
+fun RegisterScreen(
     username: String,
     password: String,
+    email: String,
+    confirmPassword: String,
     uiState: UiState<UserSession>,
     onUsernameChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
-    onNavigateToRegister: () -> Unit,
+    onEmailChange: (String) -> Unit,
+    onConfirmPasswordChange: (String) -> Unit,
     onLoginClick: () -> Unit,
     onDismissError: () -> Unit,
     modifier: Modifier = Modifier
@@ -68,7 +75,7 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "GameHub - Acceso",
+            text = "GameHub - Registro",
             style = MaterialTheme.typography.headlineSmall
         )
 
@@ -82,7 +89,17 @@ fun LoginScreen(
             singleLine = true
         )
 
-        @Suppress("DEPRECATION")
+        OutlinedTextField(
+            value = email,
+            onValueChange = onEmailChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            label = { Text("Email") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            singleLine = true
+        )
+
         OutlinedTextField(
             value = password,
             onValueChange = onPasswordChange,
@@ -90,6 +107,17 @@ fun LoginScreen(
                 .fillMaxWidth()
                 .padding(top = 12.dp),
             label = { Text("Contraseña") },
+            visualTransformation = PasswordVisualTransformation(),
+            singleLine = true
+        )
+
+        OutlinedTextField(
+            value = confirmPassword,
+            onValueChange = onConfirmPasswordChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            label = { Text("Confirmar contraseña") },
             visualTransformation = PasswordVisualTransformation(),
             singleLine = true
         )
@@ -106,12 +134,8 @@ fun LoginScreen(
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.padding(2.dp))
             } else {
-                Text("Entrar")
+                Text("Registrarse")
             }
-        }
-
-        TextButton(onClick = onNavigateToRegister) {
-            Text("¿No tienes cuenta? Regístrate")
         }
 
         if (uiState is UiState.Error) {
