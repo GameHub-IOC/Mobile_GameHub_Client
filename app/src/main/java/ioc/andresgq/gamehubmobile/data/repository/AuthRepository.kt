@@ -5,7 +5,9 @@ import ioc.andresgq.gamehubmobile.data.model.UserSession
 import ioc.andresgq.gamehubmobile.data.remote.AuthApi
 import ioc.andresgq.gamehubmobile.data.remote.dto.LoginRequestDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.RegisterRequestDto
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 import java.io.IOException
@@ -28,7 +30,8 @@ import java.io.IOException
  */
 class AuthRepository(
     private val authApi: AuthApi,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
     /**
      * Intenta autenticar al usuario con las credenciales proporcionadas.
@@ -53,7 +56,7 @@ class AuthRepository(
      * @return un [Result] con la [UserSession] en caso de éxito, o un error en caso de fallo.
      */
     suspend fun login(username: String, password: String): Result<UserSession> {
-        return withContext(Dispatchers.IO) {
+        return withContext(ioDispatcher) {
             try {
                 val response = authApi.login(
                     LoginRequestDto(
@@ -72,6 +75,8 @@ class AuthRepository(
                 Result.failure(Exception("Credenciales inválidas o error ${httpException.code()}"))
             } catch (_: IOException) {
                 Result.failure(Exception("No se pudo conectar con el servidor"))
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 Result.failure(Exception("Error inesperado durante login"))
             }
@@ -87,7 +92,7 @@ class AuthRepository(
      * @return la [UserSession] guardada localmente, o `null` si no hay sesión activa.
      */
     suspend fun getSession(): UserSession? {
-        return withContext(Dispatchers.IO) {
+        return withContext(ioDispatcher) {
             tokenManager.getSession()
         }
     }
@@ -100,7 +105,7 @@ class AuthRepository(
      * por tratarse de una operación de almacenamiento.
      */
     suspend fun logout() {
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             tokenManager.clearSession()
         }
     }
@@ -128,7 +133,7 @@ class AuthRepository(
         password: String,
         email: String
     ): Result<UserSession> {
-        return withContext(Dispatchers.IO) {
+        return withContext(ioDispatcher) {
             try {
                 val response = authApi.register(
                     RegisterRequestDto(
@@ -153,6 +158,8 @@ class AuthRepository(
                 Result.failure(Exception(message))
             } catch (_: IOException) {
                 Result.failure(Exception("No se pudo conectar con el servidor"))
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 Result.failure(Exception("Error inesperado durante el registro"))
             }
