@@ -130,25 +130,18 @@ class AuthRepository(
      */
     suspend fun register(
         username: String,
-        password: String,
-        email: String
-    ): Result<UserSession> {
+        password: String
+    ): Result<Unit> {
         return withContext(ioDispatcher) {
             try {
-                val response = authApi.register(
+                authApi.register(
                     RegisterRequestDto(
                         nombre = username,
                         password = password,
-                        email = email
+                        rol = "USER"
                     )
                 )
-                val session = UserSession(
-                    token    = response.token,
-                    username = response.nombre,
-                    userType = response.rol
-                )
-                tokenManager.saveSession(session)
-                Result.success(session)
+                Result.success(Unit)
             } catch (e: HttpException) {
                 val message = when (e.code()) {
                     409  -> "Este nombre de usuario ya existe"
@@ -160,8 +153,10 @@ class AuthRepository(
                 Result.failure(Exception("No se pudo conectar con el servidor"))
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Exception) {
-                Result.failure(Exception("Error inesperado durante el registro"))
+            } catch (e: Exception) {
+                Result.failure(
+                    Exception("Error inesperado durante el registro: ${e.message}")
+                )
             }
         }
     }

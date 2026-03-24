@@ -16,6 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -30,6 +33,11 @@ fun HomeRoute(
     onCloseApp: () -> Unit
 ) {
     val logoutState by viewModel.logoutState.collectAsState()
+    var userName by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        userName = viewModel.getCurrentUser()?.username.orEmpty()
+    }
 
     LaunchedEffect(logoutState) {
         if (logoutState is UiState.Success) {
@@ -38,6 +46,7 @@ fun HomeRoute(
     }
 
     HomeScreen(
+        userName = userName,
         userType = userTypeFromRoute,
         logoutState = logoutState,
         onLogoutClick = viewModel::logout,
@@ -47,6 +56,7 @@ fun HomeRoute(
 
 @Composable
 fun HomeScreen(
+    userName: String,
     userType: String,
     logoutState: UiState<Unit>,
     onLogoutClick: () -> Unit,
@@ -62,7 +72,7 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "Pantalla principal provisional",
+            text = "Bienvenido, $userName",
             style = MaterialTheme.typography.headlineSmall
         )
         Text(text = "Tipo de usuario: $userType")

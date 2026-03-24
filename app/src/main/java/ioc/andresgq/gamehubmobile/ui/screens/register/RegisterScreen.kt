@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -18,36 +17,32 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import ioc.andresgq.gamehubmobile.data.model.UserSession
 import ioc.andresgq.gamehubmobile.ui.state.UiState
 
 @Composable
 fun RegisterRoute(
     viewModel: RegisterViewModel,
-    onLoginSuccess: (UserSession) -> Unit
+    onRegisterSuccess: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState) {
         if (uiState is UiState.Success) {
-            onLoginSuccess((uiState as UiState.Success<UserSession>).data)
+            onRegisterSuccess()
         }
     }
 
     RegisterScreen(
         username = viewModel.username,
         password = viewModel.password,
-        email = viewModel.email,
         confirmPassword = viewModel.confirmPassword,
         uiState = uiState,
         onUsernameChange = viewModel::onUsernameChange,
         onPasswordChange = viewModel::onPasswordChange,
-        onEmailChange = viewModel::onEmailChange,
         onConfirmPasswordChange = viewModel::onConfirmPasswordChange,
-        onLoginClick = viewModel::register,
+        onRegisterClick = viewModel::register,
         onDismissError = viewModel::clearError
     )
 }
@@ -56,14 +51,12 @@ fun RegisterRoute(
 fun RegisterScreen(
     username: String,
     password: String,
-    email: String,
     confirmPassword: String,
-    uiState: UiState<UserSession>,
+    uiState: UiState<Unit>,
     onUsernameChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
-    onEmailChange: (String) -> Unit,
     onConfirmPasswordChange: (String) -> Unit,
-    onLoginClick: () -> Unit,
+    onRegisterClick: () -> Unit,
     onDismissError: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -86,17 +79,6 @@ fun RegisterScreen(
                 .fillMaxWidth()
                 .padding(top = 24.dp),
             label = { Text("Usuario") },
-            singleLine = true
-        )
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = onEmailChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            label = { Text("Email") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             singleLine = true
         )
 
@@ -125,7 +107,7 @@ fun RegisterScreen(
         val isLoading = uiState is UiState.Loading
 
         Button(
-            onClick = onLoginClick,
+            onClick = onRegisterClick,
             enabled = !isLoading,
             modifier = Modifier
                 .fillMaxWidth()

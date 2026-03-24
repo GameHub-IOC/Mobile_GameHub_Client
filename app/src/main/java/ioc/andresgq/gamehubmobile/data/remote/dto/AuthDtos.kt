@@ -38,12 +38,12 @@ data class LoginResponseDto(
  *
  * @property nombre nombre de usuario enviado al backend.
  * @property password contraseña asociada al usuario.
- * @property email email asociado al usuario
+ * @property rol rol o tipo de usuario enviado al backend.
  */
 data class RegisterRequestDto(
     val nombre: String,
     val password: String,
-    val email: String
+    val rol: String
 )
 
 // La respuesta puede reutilizar LoginResponseDto si el servidor
@@ -56,12 +56,12 @@ data class RegisterRequestDto(
  * Contiene la información devuelta por la API para identificar la sesión
  * autenticada y el contexto del usuario autenticado.
  *
- * @property token token de autenticación generado por el servidor.
+ * @property id identificador único del usuario registrado.
  * @property nombre nombre del usuario autenticado.
  * @property rol rol o tipo de usuario devuelto por el backend.
  */
 data class RegisterResponseDto(
-    val token: String,
+    val id: Long,
     val nombre: String,
     val rol: String
 )

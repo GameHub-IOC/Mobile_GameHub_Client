@@ -116,8 +116,7 @@ fun AppNavHost(
         /**
          * Destino de la pantalla de registro.
          * Similar al login, se crea el [RegisterViewModel] con su factoría y se pasa a [RegisterRoute].
-         * Si el registro es correcto, se navega a la home con el tipo de usuario
-         * codificado en la ruta.
+         * Si el registro es correcto, se navega al login para que el usuario acceda.
          *
          * @param authRepository repositorio de autenticación usado para registrar al usuario.
          * @param onCloseApp callback que permite cerrar la aplicación desde la pantalla principal.
@@ -128,9 +127,9 @@ fun AppNavHost(
             )
             RegisterRoute(
                 viewModel = registerViewModel,
-                onLoginSuccess = { session ->
-                    navController.navigate(AppDestinations.homeRoute(session.userType)) {
-                        popUpTo(AppDestinations.Login) { inclusive = true }
+                onRegisterSuccess = {
+                    navController.navigate(AppDestinations.Login) {
+                        popUpTo(AppDestinations.Register) { inclusive = true }
                     }
                 }
             )

@@ -6,9 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import ioc.andresgq.gamehubmobile.data.model.UserSession
 import ioc.andresgq.gamehubmobile.data.repository.AuthRepository
-import ioc.andresgq.gamehubmobile.ui.screens.login.LoginViewModel
 import ioc.andresgq.gamehubmobile.ui.state.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,11 +23,9 @@ class RegisterViewModel(
         private set
     var confirmPassword by mutableStateOf("")
         private set
-    var email by mutableStateOf("")
-        private set
 
-    private val _uiState = MutableStateFlow<UiState<UserSession>>(UiState.Idle)
-    val uiState: StateFlow<UiState<UserSession>> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow<UiState<Unit>>(UiState.Idle)
+    val uiState: StateFlow<UiState<Unit>> = _uiState.asStateFlow()
 
     fun onUsernameChange(v: String) {
         username = v
@@ -43,21 +39,10 @@ class RegisterViewModel(
         confirmPassword = v
     }
 
-    fun onEmailChange(v: String) {
-        email = v
-    }
-
     fun register() {
-        // Validaciones locales antes de tocar la red
         when {
             username.isBlank() ->
                 _uiState.value = UiState.Error("El nombre de usuario es obligatorio")
-
-            email.isBlank() ->
-                _uiState.value = UiState.Error("El email es obligatorio")
-
-            !email.contains('@') ->
-                _uiState.value = UiState.Error("El email no tiene un formato válido")
 
             password.isBlank() ->
                 _uiState.value = UiState.Error("La contraseña es obligatoria")
@@ -72,11 +57,10 @@ class RegisterViewModel(
                 _uiState.value = UiState.Loading
                 val result = authRepository.register(
                     username.trim(),
-                    password,
-                    email.trim()
+                    password
                 )
                 _uiState.value = result.fold(
-                    onSuccess = { UiState.Success(it) },
+                    onSuccess = { UiState.Success(Unit) },
                     onFailure = { UiState.Error(it.message ?: "No se pudo registrar") }
                 )
             }
