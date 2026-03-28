@@ -20,6 +20,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import ioc.andresgq.gamehubmobile.data.model.UserSession
 import ioc.andresgq.gamehubmobile.data.repository.AuthRepository
+import ioc.andresgq.gamehubmobile.data.repository.GameRepository
 import ioc.andresgq.gamehubmobile.ui.screens.home.HomeRoute
 import ioc.andresgq.gamehubmobile.ui.screens.home.HomeViewModel
 import ioc.andresgq.gamehubmobile.ui.screens.home.HomeViewModelFactory
@@ -49,6 +50,7 @@ import ioc.andresgq.gamehubmobile.ui.screens.register.RegisterViewModelFactory
 @Composable
 fun AppNavHost(
     authRepository: AuthRepository,
+    gameRepository: GameRepository,
     onCloseApp: () -> Unit
 ) {
     val navController = rememberNavController()
@@ -148,7 +150,10 @@ fun AppNavHost(
         ) { backStackEntry ->
             val userType = Uri.decode(backStackEntry.arguments?.getString("userType").orEmpty())
             val homeViewModel: HomeViewModel = viewModel(
-                factory = HomeViewModelFactory(authRepository)
+                factory = HomeViewModelFactory(
+                    authRepository = authRepository,
+                    gameRepository = gameRepository
+                )
             )
             HomeRoute(
                 viewModel = homeViewModel,

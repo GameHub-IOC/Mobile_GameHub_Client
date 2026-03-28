@@ -2,25 +2,33 @@ package ioc.andresgq.gamehubmobile.ui.screens.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import ioc.andresgq.gamehubmobile.ui.state.UiState
@@ -33,7 +41,8 @@ fun HomeRoute(
     onCloseApp: () -> Unit
 ) {
     val logoutState by viewModel.logoutState.collectAsState()
-    var userName by remember { mutableStateOf("") }
+    val catalogState by viewModel.catalogState.collectAsState()
+    var userName by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         userName = viewModel.getCurrentUser()?.username.orEmpty()
@@ -49,7 +58,9 @@ fun HomeRoute(
         userName = userName,
         userType = userTypeFromRoute,
         logoutState = logoutState,
+        catalogState = catalogState,
         onLogoutClick = viewModel::logout,
+        onReloadCatalog = { viewModel.loadCatalog(force = true) },
         onCloseApp = onCloseApp
     )
 }
@@ -59,45 +70,201 @@ fun HomeScreen(
     userName: String,
     userType: String,
     logoutState: UiState<Unit>,
+    catalogState: UiState<List<GameItemUi>>,
     onLogoutClick: () -> Unit,
+    onReloadCatalog: () -> Unit,
     onCloseApp: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    var query by rememberSaveable { mutableStateOf("") }
+    var selectedCategory by rememberSaveable { mutableStateOf("Todas") }
+    var onlyAvailable by rememberSaveable { mutableStateOf(false) }
+
+    val allGames = (catalogState as? UiState.Success)?.data.orEmpty()
+    val categories = listOf("Todas") + allGames.map { it.categoria }.distinct().sorted()
+
+    val filteredGames = allGames.filter { game ->
+        val matchesQuery = query.isBlank() ||
+                game.nombre.contains(query, ignoreCase = true) ||
+                (game.descripcion?.contains(query, ignoreCase = true) == true)
+
+        val matchesCategory = selectedCategory == "Todas" || game.categoria == selectedCategory
+        val matchesAvailability = !onlyAvailable || game.disponible
+
+        matchesQuery && matchesCategory && matchesAvailability
+    }
+
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(24.dp)
-            .navigationBarsPadding()
-            .verticalScroll(rememberScrollState()),
+            .padding(16.dp)
+            .navigationBarsPadding(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            text = "Bienvenido, $userName",
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Text(text = "Tipo de usuario: $userType")
-
-        AsyncImage(
-            model = "https://api.dicebear.com/9.x/thumbs/svg?seed=$userType",
-            contentDescription = "Miniatura de perfil",
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp),
-            contentScale = ContentScale.Crop
-        )
-
-        Button(onClick = onLogoutClick, enabled = logoutState !is UiState.Loading) {
-            Text("Cerrar sesión")
+        item {
+            Text(
+                text = "Bienvenido, $userName",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "Tipo de usuario: $userType",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
-        Button(onClick = onCloseApp) {
-            Text("Cerrar aplicación")
+
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onReloadCatalog) { Text("Recargar") }
+                Button(onClick = onLogoutClick, enabled = logoutState !is UiState.Loading) {
+                    Text("Cerrar sesion")
+                }
+                OutlinedButton(onClick = onCloseApp) { Text("Salir") }
+            }
         }
 
         if (logoutState is UiState.Error) {
+            item {
+                Text(
+                    text = logoutState.message,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+
+        item {
             Text(
-                text = logoutState.message,
-                color = MaterialTheme.colorScheme.error
+                text = "Catalogo de juegos",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
             )
         }
+
+        item {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Buscar por nombre o descripcion") },
+                singleLine = true
+            )
+        }
+
+        item {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(categories) { category ->
+                    FilterChip(
+                        selected = selectedCategory == category,
+                        onClick = { selectedCategory = category },
+                        label = { Text(category) }
+                    )
+                }
+            }
+        }
+
+        item {
+            FilterChip(
+                selected = onlyAvailable,
+                onClick = { onlyAvailable = !onlyAvailable },
+                label = { Text("Solo disponibles") }
+            )
+        }
+
+        when (catalogState) {
+            UiState.Idle, UiState.Loading -> {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+
+            is UiState.Error -> {
+                item {
+                    Text(
+                        text = catalogState.message,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+
+            is UiState.Success -> {
+                if (filteredGames.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No hay juegos para los filtros actuales.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    items(filteredGames, key = { it.id }) { game ->
+                        GameCard(game = game)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GameCard(game: GameItemUi) {
+    ElevatedCard(
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AsyncImage(
+                model = resolveImageModel(game),
+                contentDescription = "Imagen de ${game.nombre}",
+                modifier = Modifier.fillMaxWidth(),
+                contentScale = ContentScale.Crop
+            )
+
+            Text(
+                text = game.nombre,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Text(
+                text = "${game.categoria}  |  Jugadores: ${game.numJugadores}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Text(
+                text = if (game.disponible) "Disponible" else "No disponible",
+                style = MaterialTheme.typography.labelLarge,
+                color = if (game.disponible) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.error
+                }
+            )
+
+            if (!game.descripcion.isNullOrBlank()) {
+                Text(
+                    text = game.descripcion,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+private fun resolveImageModel(game: GameItemUi): String {
+    val path = game.rutaImagen?.trim().orEmpty()
+    return when {
+        path.startsWith("http://") || path.startsWith("https://") -> path
+        path.isNotBlank() -> path
+        else -> "https://picsum.photos/seed/${game.id}/900/480"
     }
 }

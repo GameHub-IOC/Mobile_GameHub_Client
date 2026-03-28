@@ -6,7 +6,9 @@ import ioc.andresgq.gamehubmobile.BuildConfig
 import ioc.andresgq.gamehubmobile.data.local.AppDatabase
 import ioc.andresgq.gamehubmobile.data.local.TokenManager
 import ioc.andresgq.gamehubmobile.data.remote.AuthApi
+import ioc.andresgq.gamehubmobile.data.remote.GameApi
 import ioc.andresgq.gamehubmobile.data.repository.AuthRepository
+import ioc.andresgq.gamehubmobile.data.repository.GameRepository
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -27,6 +29,11 @@ interface AppContainer {
      * Repositorio encargado de la autenticación y gestión de sesión del usuario.
      */
     val authRepository: AuthRepository
+
+    /**
+     * Repositorio encargado del acceso al catálogo de juegos.
+     */
+    val gameRepository: GameRepository
 }
 
 /**
@@ -71,11 +78,31 @@ class DefaultAppContainer(context: Context) : AppContainer {
      * la petición.
      */
     private val authInterceptor = Interceptor { chain ->
-        val token = runBlocking { tokenManager.getSession()?.token }
-        val request = chain.request().newBuilder().apply {
-            token?.let { addHeader("Authorization", "Bearer $it") }
-        }.build()
-        chain.proceed(request)
+        val originalRequest = chain.request()
+        val path = originalRequest.url.encodedPath
+
+        val isAuthEndpoint =
+            path.endsWith("/auth/login") || path.endsWith("/auth/register")
+
+        val alreadyHasAuthorization = originalRequest.header("Authorization") != null
+
+        if (isAuthEndpoint || alreadyHasAuthorization) {
+            return@Interceptor chain.proceed(originalRequest)
+        }
+
+        val token = runBlocking {
+            tokenManager.getSession()?.token?.trim().orEmpty()
+        }
+
+        if (token.isBlank()) {
+            return@Interceptor chain.proceed(originalRequest)
+        }
+
+        val authenticatedRequest = originalRequest.newBuilder()
+            .header("Authorization", "Bearer $token")
+            .build()
+
+        chain.proceed(authenticatedRequest)
     }
 
     /**
@@ -103,11 +130,14 @@ class DefaultAppContainer(context: Context) : AppContainer {
         .build()
 
     /**
-     * Implementación de la interfaz [AuthApi] generada por Retrofit.
-     *
-     * Esta instancia encapsula las llamadas HTTP relacionadas con autenticación.
+     * Implementación de [AuthApi] generada por Retrofit.
      */
     private val authApi = retrofit.create(AuthApi::class.java)
+
+    /**
+     * Implementación de [GameApi] generada por Retrofit.
+     */
+    private val gameApi = retrofit.create(GameApi::class.java)
 
     /**
      * Base de datos local de la aplicación construida con Room.
@@ -130,12 +160,16 @@ class DefaultAppContainer(context: Context) : AppContainer {
 
     /**
      * Repositorio de autenticación expuesto por el contenedor.
-     *
-     * Se construye combinando la API remota [authApi] y el almacenamiento local
-     * proporcionado por [tokenManager].
      */
     override val authRepository: AuthRepository = AuthRepository(
         authApi = authApi,
         tokenManager = tokenManager
+    )
+
+    /**
+     * Repositorio de juegos expuesto por el contenedor.
+     */
+    override val gameRepository: GameRepository = GameRepository(
+        gameApi = gameApi
     )
 }

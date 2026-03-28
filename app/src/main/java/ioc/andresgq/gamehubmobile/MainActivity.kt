@@ -46,8 +46,10 @@ class MainActivity : ComponentActivity() {
                 // Carga la navegación principal e inyecta el repositorio de autenticación.
                 AppNavHost(
                     authRepository = appContainer.authRepository,
+                    gameRepository = appContainer.gameRepository,
                     onCloseApp = { finish() }
                 )
+
             }
         }
     }
