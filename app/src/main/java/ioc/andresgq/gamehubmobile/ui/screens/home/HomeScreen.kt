@@ -1,5 +1,6 @@
 package ioc.andresgq.gamehubmobile.ui.screens.home
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,6 +32,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import ioc.andresgq.gamehubmobile.BuildConfig
 import ioc.andresgq.gamehubmobile.ui.state.UiState
 
 @Composable
@@ -221,7 +223,7 @@ private fun GameCard(game: GameItemUi) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             AsyncImage(
-                model = resolveImageModel(game),
+                model = resolveGameImageUrl(game.rutaImagen),
                 contentDescription = "Imagen de ${game.nombre}",
                 modifier = Modifier.fillMaxWidth(),
                 contentScale = ContentScale.Crop
@@ -260,11 +262,22 @@ private fun GameCard(game: GameItemUi) {
     }
 }
 
-private fun resolveImageModel(game: GameItemUi): String {
-    val path = game.rutaImagen?.trim().orEmpty()
-    return when {
-        path.startsWith("http://") || path.startsWith("https://") -> path
-        path.isNotBlank() -> path
-        else -> "https://picsum.photos/seed/${game.id}/900/480"
-    }
+/**
+ * Resuelve la URL de imagen de un juego.
+ *
+ * @param rutaImagen ruta relativa de la imagen en el backend.
+ * @return URL completa de la imagen, o `null` si no hay imagen.
+ *
+ */
+fun resolveGameImageUrl(rutaImagen: String?): String? {
+    val raw = rutaImagen?.trim().orEmpty()
+    if (raw.isBlank()) return null
+
+    // Si ya es URL completa, la usamos tal cual.
+    if (raw.startsWith("http://") || raw.startsWith("https://")) return raw
+
+    // Si viene del seeder como "catan.jpg", construimos endpoint de backend.
+    val base = BuildConfig.API_BASE_URL.trimEnd('/')
+    val encoded = Uri.encode(raw)
+    return "$base/juegos/imagen/$encoded"
 }

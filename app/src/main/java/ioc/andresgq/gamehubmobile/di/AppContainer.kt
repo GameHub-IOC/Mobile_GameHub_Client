@@ -149,7 +149,9 @@ class DefaultAppContainer(context: Context) : AppContainer {
         context.applicationContext,
         AppDatabase::class.java,
         "gamehub.db"
-    ).build()
+    )
+        .addMigrations(AppDatabase.MIGRATION_1_2) // <- AÑADIR
+        .build()
 
     /**
      * Componente responsable de guardar, recuperar y eliminar la sesión local.
@@ -170,6 +172,7 @@ class DefaultAppContainer(context: Context) : AppContainer {
      * Repositorio de juegos expuesto por el contenedor.
      */
     override val gameRepository: GameRepository = GameRepository(
-        gameApi = gameApi
+        gameApi = gameApi,
+        gameDao = appDatabase.gameDao() // <- AÑADIR
     )
 }
