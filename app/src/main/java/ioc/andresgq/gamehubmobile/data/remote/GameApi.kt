@@ -1,5 +1,6 @@
 package ioc.andresgq.gamehubmobile.data.remote
 
+import ioc.andresgq.gamehubmobile.data.remote.dto.GameDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.GameListResponseDto
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -31,4 +32,7 @@ interface GameApi {
 
     @GET("juegos/disponibles")
     suspend fun getAvailableGames(): GameListResponseDto
+
+    @GET("juegos/{id}")
+    suspend fun getGameById(@Path("id") id: Long): GameDto
 }

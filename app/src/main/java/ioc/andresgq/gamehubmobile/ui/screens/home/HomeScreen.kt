@@ -40,6 +40,7 @@ fun HomeRoute(
     viewModel: HomeViewModel,
     userTypeFromRoute: String,
     onLogoutSuccess: () -> Unit,
+    onGameClick: (Long) -> Unit,
     onCloseApp: () -> Unit
 ) {
     val logoutState by viewModel.logoutState.collectAsState()
@@ -62,6 +63,7 @@ fun HomeRoute(
         logoutState = logoutState,
         catalogState = catalogState,
         onLogoutClick = viewModel::logout,
+        onGameClick = onGameClick,
         onReloadCatalog = { viewModel.loadCatalog(force = true) },
         onCloseApp = onCloseApp
     )
@@ -76,6 +78,7 @@ fun HomeScreen(
     onLogoutClick: () -> Unit,
     onReloadCatalog: () -> Unit,
     onCloseApp: () -> Unit,
+    onGameClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var query by rememberSaveable { mutableStateOf("") }
@@ -204,7 +207,7 @@ fun HomeScreen(
                     }
                 } else {
                     items(filteredGames, key = { it.id }) { game ->
-                        GameCard(game = game)
+                        GameCard(game = game, onClick = { onGameClick(game.id) })  // <-- ACTUALIZAR
                     }
                 }
             }
@@ -213,8 +216,9 @@ fun HomeScreen(
 }
 
 @Composable
-private fun GameCard(game: GameItemUi) {
+private fun GameCard(game: GameItemUi, onClick: () -> Unit) {
     ElevatedCard(
+        onClick = onClick,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth()
     ) {

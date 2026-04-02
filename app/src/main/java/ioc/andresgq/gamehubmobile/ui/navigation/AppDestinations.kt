@@ -45,4 +45,15 @@ object AppDestinations {
      * @return la ruta completa en formato `home/<userType-codificado>`.
      */
     fun homeRoute(userType: String): String = "home/${Uri.encode(userType)}"
+
+    /** Patrón de ruta de la pantalla de detalle de un juego. */
+    const val GameDetailRoutePattern = "game_detail/{gameId}"
+
+    /**
+     * Construye la ruta real hacia la pantalla de detalle a partir del id del juego.
+     *
+     * @param gameId identificador del juego.
+     * @return ruta completa en formato `game_detail/<gameId>`.
+     */
+    fun gameDetailRoute(gameId: Long): String = "game_detail/$gameId"
 }

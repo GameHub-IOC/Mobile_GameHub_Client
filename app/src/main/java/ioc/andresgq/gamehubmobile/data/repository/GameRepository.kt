@@ -73,6 +73,39 @@ class GameRepository(
         )
 
     /**
+     * Recupera el detalle de un juego por su id.
+     * Fallback: juego almacenado en caché local si existe.
+     *
+     * @param id identificador único del juego.
+     */
+    suspend fun getGameById(id: Long): Result<GameDto> = withContext(ioDispatcher) {
+        try {
+            val remote = gameApi.getGameById(id)
+            gameDao.upsertAll(listOf(remote.toEntity()))
+            Result.success(remote)
+        } catch (e: HttpException) {
+            val cached = gameDao.getById(id)
+            if (cached != null) {
+                Result.success(cached.toDto())
+            } else {
+                val message = when (e.code()) {
+                    404 -> "Juego no encontrado"
+                    else -> "Error del servidor (${e.code()})"
+                }
+                Result.failure(Exception(message))
+            }
+        } catch (_: IOException) {
+            val cached = gameDao.getById(id)
+            if (cached != null) Result.success(cached.toDto())
+            else Result.failure(Exception("No se pudo conectar con el servidor"))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(Exception("Error inesperado al obtener el juego: ${e.message}"))
+        }
+    }
+
+    /**
      * Ejecuta una petición remota aplicando la estrategia network-first con caché.
      *
      * En caso de error de red o del servidor, intenta servir datos desde [cacheFallback].

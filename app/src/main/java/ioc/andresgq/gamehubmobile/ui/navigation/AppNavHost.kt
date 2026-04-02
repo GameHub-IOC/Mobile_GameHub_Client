@@ -21,6 +21,9 @@ import androidx.navigation.navArgument
 import ioc.andresgq.gamehubmobile.data.model.UserSession
 import ioc.andresgq.gamehubmobile.data.repository.AuthRepository
 import ioc.andresgq.gamehubmobile.data.repository.GameRepository
+import ioc.andresgq.gamehubmobile.ui.screens.gamedetail.GameDetailRoute
+import ioc.andresgq.gamehubmobile.ui.screens.gamedetail.GameDetailViewModel
+import ioc.andresgq.gamehubmobile.ui.screens.gamedetail.GameDetailViewModelFactory
 import ioc.andresgq.gamehubmobile.ui.screens.home.HomeRoute
 import ioc.andresgq.gamehubmobile.ui.screens.home.HomeViewModel
 import ioc.andresgq.gamehubmobile.ui.screens.home.HomeViewModelFactory
@@ -158,6 +161,9 @@ fun AppNavHost(
             HomeRoute(
                 viewModel = homeViewModel,
                 userTypeFromRoute = userType,
+                onGameClick = { gameId ->
+                    navController.navigate(AppDestinations.gameDetailRoute(gameId))
+                },
                 onLogoutSuccess = {
                     navController.navigate(AppDestinations.Login) {
                         /**
@@ -168,6 +174,29 @@ fun AppNavHost(
                     }
                 },
                 onCloseApp = onCloseApp
+            )
+        }
+
+        /**
+         * Destino de la pantalla de detalle de un juego.
+         *
+         * Recibe el argumento `gameId` como Long desde la ruta y construye
+         * el [GameDetailViewModel] con su factoría pasándole el id.
+         */
+        composable(
+            route = AppDestinations.GameDetailRoutePattern,
+            arguments = listOf(navArgument("gameId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val gameId = backStackEntry.arguments?.getLong("gameId") ?: return@composable
+            val gameDetailViewModel: GameDetailViewModel = viewModel(
+                factory = GameDetailViewModelFactory(
+                    gameRepository = gameRepository,
+                    gameId = gameId
+                )
+            )
+            GameDetailRoute(
+                viewModel = gameDetailViewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }
