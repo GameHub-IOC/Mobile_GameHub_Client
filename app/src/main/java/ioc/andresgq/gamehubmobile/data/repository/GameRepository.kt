@@ -1,10 +1,7 @@
 package ioc.andresgq.gamehubmobile.data.repository
 
-import ioc.andresgq.gamehubmobile.data.local.GameDao
-import ioc.andresgq.gamehubmobile.data.local.GameEntity
-import ioc.andresgq.gamehubmobile.data.local.toDto
-import ioc.andresgq.gamehubmobile.data.local.toEntity
-import ioc.andresgq.gamehubmobile.data.remote.GameApi
+import ioc.andresgq.gamehubmobile.data.local.GameLocalDataSource
+import ioc.andresgq.gamehubmobile.data.remote.GameRemoteDataSource
 import ioc.andresgq.gamehubmobile.data.remote.dto.GameDto
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -17,18 +14,18 @@ import java.io.IOException
  * Repositorio encargado de gestionar el acceso al catálogo de juegos.
  *
  * Implementa una estrategia **network-first con fallback a caché**:
- * 1. Intenta obtener los datos de [gameApi].
- * 2. Si tiene éxito, actualiza la caché en [gameDao] y devuelve los datos remotos.
+ * 1. Intenta obtener los datos de [gameRemoteDataSource].
+ * 2. Si tiene éxito, actualiza la caché en [gameLocalDataSource] y devuelve los datos remotos.
  * 3. Si falla la red, devuelve los datos almacenados localmente (si existen).
  * 4. Si tampoco hay caché, devuelve un [Result.failure] con el error original.
  *
- * @property gameApi   servicio remoto que expone las operaciones del catálogo.
- * @property gameDao   DAO de Room para lectura y escritura de la caché local.
+ * @property gameRemoteDataSource fuente remota del catálogo.
+ * @property gameLocalDataSource  fuente local basada en Room para la caché.
  * @property ioDispatcher dispatcher usado para ejecutar operaciones de I/O.
  */
 class GameRepository(
-    private val gameApi: GameApi,
-    private val gameDao: GameDao,
+    private val gameRemoteDataSource: GameRemoteDataSource,
+    private val gameLocalDataSource: GameLocalDataSource,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
 
@@ -38,9 +35,9 @@ class GameRepository(
      */
     suspend fun getGames(): Result<List<GameDto>> =
         executeWithCache(
-            request = { gameApi.getGames() },
-            cacheFallback = { gameDao.getAll() },
-            cacheUpdate = { gameDao.upsertAll(it.map { dto -> dto.toEntity() }) }
+            request = { gameRemoteDataSource.getGames() },
+            cacheFallback = { gameLocalDataSource.getGames() },
+            cacheUpdate = { gameLocalDataSource.upsertGames(it) }
         )
 
     /**
@@ -55,9 +52,9 @@ class GameRepository(
             return Result.failure(Exception("El nombre de la categoría no puede estar vacío"))
         }
         return executeWithCache(
-            request = { gameApi.getGamesByCategory(normalized) },
-            cacheFallback = { gameDao.getByCategory(normalized) },
-            cacheUpdate = { gameDao.upsertAll(it.map { dto -> dto.toEntity() }) }
+            request = { gameRemoteDataSource.getGamesByCategory(normalized) },
+            cacheFallback = { gameLocalDataSource.getGamesByCategory(normalized) },
+            cacheUpdate = { gameLocalDataSource.upsertGames(it) }
         )
     }
 
@@ -67,9 +64,9 @@ class GameRepository(
      */
     suspend fun getAvailableGames(): Result<List<GameDto>> =
         executeWithCache(
-            request = { gameApi.getAvailableGames() },
-            cacheFallback = { gameDao.getAvailable() },
-            cacheUpdate = { gameDao.upsertAll(it.map { dto -> dto.toEntity() }) }
+            request = { gameRemoteDataSource.getAvailableGames() },
+            cacheFallback = { gameLocalDataSource.getAvailableGames() },
+            cacheUpdate = { gameLocalDataSource.upsertGames(it) }
         )
 
     /**
@@ -80,13 +77,13 @@ class GameRepository(
      */
     suspend fun getGameById(id: Long): Result<GameDto> = withContext(ioDispatcher) {
         try {
-            val remote = gameApi.getGameById(id)
-            gameDao.upsertAll(listOf(remote.toEntity()))
+            val remote = gameRemoteDataSource.getGameById(id)
+            gameLocalDataSource.upsertGames(listOf(remote))
             Result.success(remote)
         } catch (e: HttpException) {
-            val cached = gameDao.getById(id)
+            val cached = gameLocalDataSource.getGameById(id)
             if (cached != null) {
-                Result.success(cached.toDto())
+                Result.success(cached)
             } else {
                 val message = when (e.code()) {
                     404 -> "Juego no encontrado"
@@ -95,8 +92,8 @@ class GameRepository(
                 Result.failure(Exception(message))
             }
         } catch (_: IOException) {
-            val cached = gameDao.getById(id)
-            if (cached != null) Result.success(cached.toDto())
+            val cached = gameLocalDataSource.getGameById(id)
+            if (cached != null) Result.success(cached)
             else Result.failure(Exception("No se pudo conectar con el servidor"))
         } catch (e: CancellationException) {
             throw e
@@ -117,7 +114,7 @@ class GameRepository(
      */
     private suspend fun executeWithCache(
         request: suspend () -> List<GameDto>,
-        cacheFallback: suspend () -> List<GameEntity>,
+        cacheFallback: suspend () -> List<GameDto>,
         cacheUpdate: suspend (List<GameDto>) -> Unit
     ): Result<List<GameDto>> = withContext(ioDispatcher) {
         try {
@@ -127,7 +124,7 @@ class GameRepository(
         } catch (e: HttpException) {
             val cached = cacheFallback()
             if (cached.isNotEmpty()) {
-                Result.success(cached.map { it.toDto() })
+                Result.success(cached)
             } else {
                 val message = when (e.code()) {
                     404 -> "No se encontraron juegos"
@@ -138,7 +135,7 @@ class GameRepository(
         } catch (_: IOException) {
             val cached = cacheFallback()
             if (cached.isNotEmpty()) {
-                Result.success(cached.map { it.toDto() })
+                Result.success(cached)
             } else {
                 Result.failure(Exception("No se pudo conectar con el servidor"))
             }

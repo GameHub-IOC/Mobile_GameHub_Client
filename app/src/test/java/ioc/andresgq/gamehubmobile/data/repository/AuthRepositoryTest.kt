@@ -62,7 +62,7 @@ class AuthRepositoryTest {
         }
         val repository = AuthRepository(fakeApi, TokenManager(FakeUserSessionDao()))
 
-        val result = repository.register("usuario", "123456", "user@mail.com")
+        val result = repository.register("usuario", "123456")
 
         assertTrue(result.isFailure)
         assertEquals(
@@ -78,7 +78,7 @@ class AuthRepositoryTest {
         }
         val repository = AuthRepository(fakeApi, TokenManager(FakeUserSessionDao()))
 
-        val result = repository.register("usuario", "123456", "user@mail.com")
+        val result = repository.register("usuario", "123456")
 
         assertTrue(result.isFailure)
         assertEquals(
@@ -107,7 +107,7 @@ class AuthRepositoryTest {
 
     private class FakeAuthApi : AuthApi {
         var loginResult: LoginResponseDto = LoginResponseDto("token", "name", "USER")
-        var registerResult: RegisterResponseDto = RegisterResponseDto("token", "name", "USER")
+        var registerResult: RegisterResponseDto = RegisterResponseDto(0L, "name", "USER")
         var loginThrowable: Throwable? = null
         var registerThrowable: Throwable? = null
 

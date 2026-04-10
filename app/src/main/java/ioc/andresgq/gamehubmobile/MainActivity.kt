@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import ioc.andresgq.gamehubmobile.ui.navigation.AppNavHost
+import ioc.andresgq.gamehubmobile.navigation.AppNavHost
 import ioc.andresgq.gamehubmobile.ui.theme.GameHubMobileTheme
 
 /**
@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
                 AppNavHost(
                     authRepository = appContainer.authRepository,
                     gameRepository = appContainer.gameRepository,
+                    reservationRepository = appContainer.reservationRepository,
                     onCloseApp = { finish() }
                 )
 

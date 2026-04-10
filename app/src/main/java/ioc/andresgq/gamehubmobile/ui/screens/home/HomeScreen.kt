@@ -285,3 +285,4 @@ fun resolveGameImageUrl(rutaImagen: String?): String? {
     val encoded = Uri.encode(raw)
     return "$base/juegos/imagen/$encoded"
 }
+

@@ -21,18 +21,14 @@ class RegisterViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun register_invalidEmail_setsValidationError() {
+    fun register_emptyUsername_setsValidationError() {
         val viewModel = createViewModel(FakeAuthApi())
 
-        viewModel.onUsernameChange("usuario")
-        viewModel.onEmailChange("correo-invalido")
-        viewModel.onPasswordChange("123456")
-        viewModel.onConfirmPasswordChange("123456")
         viewModel.register()
 
         val state = viewModel.uiState.value
         assertTrue(state is UiState.Error)
-        assertTrue((state as UiState.Error).message.contains("formato"))
+        assertTrue((state as UiState.Error).message.contains("nombre de usuario"))
     }
 
     @Test
@@ -40,7 +36,6 @@ class RegisterViewModelTest {
         val viewModel = createViewModel(FakeAuthApi())
 
         viewModel.onUsernameChange("usuario")
-        viewModel.onEmailChange("user@mail.com")
         viewModel.onPasswordChange("123456")
         viewModel.onConfirmPasswordChange("abcdef")
         viewModel.register()
@@ -53,18 +48,15 @@ class RegisterViewModelTest {
     @Test
     fun register_success_trimsInputAndPublishesSuccess() = runTest(mainDispatcherRule.scheduler) {
         val fakeAuthApi = FakeAuthApi()
-        fakeAuthApi.registerResponse = fakeAuthApi.registerResponse.copy(nombre = "user")
         val viewModel = createViewModel(fakeAuthApi)
 
-        viewModel.onUsernameChange("  user  ")
-        viewModel.onEmailChange("  user@mail.com  ")
+        viewModel.onUsernameChange("  usuario  ")
         viewModel.onPasswordChange("123456")
         viewModel.onConfirmPasswordChange("123456")
         viewModel.register()
         advanceUntilIdle()
 
-        assertEquals("user", fakeAuthApi.lastRegisterRequest?.nombre)
-        assertEquals("user@mail.com", fakeAuthApi.lastRegisterRequest?.email)
+        assertEquals("usuario", fakeAuthApi.lastRegisterRequest?.nombre)
         assertTrue(viewModel.uiState.value is UiState.Success)
     }
 

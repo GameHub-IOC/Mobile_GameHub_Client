@@ -2,7 +2,15 @@ package ioc.andresgq.gamehubmobile.ui.screens.home
 
 import ioc.andresgq.gamehubmobile.data.local.TokenManager
 import ioc.andresgq.gamehubmobile.data.local.UserSessionEntity
+import ioc.andresgq.gamehubmobile.data.local.GameDao
+import ioc.andresgq.gamehubmobile.data.local.GameEntity
+import ioc.andresgq.gamehubmobile.data.local.GameLocalDataSource
+import ioc.andresgq.gamehubmobile.data.remote.GameApi
+import ioc.andresgq.gamehubmobile.data.remote.GameRemoteDataSource
+import ioc.andresgq.gamehubmobile.data.remote.dto.GameDto
+import ioc.andresgq.gamehubmobile.data.remote.dto.CategoriaDto
 import ioc.andresgq.gamehubmobile.data.repository.AuthRepository
+import ioc.andresgq.gamehubmobile.data.repository.GameRepository
 import ioc.andresgq.gamehubmobile.testutil.FakeAuthApi
 import ioc.andresgq.gamehubmobile.testutil.FakeUserSessionDao
 import ioc.andresgq.gamehubmobile.testutil.MainDispatcherRule
@@ -72,12 +80,49 @@ class HomeViewModelTest {
     }
 
     private fun createViewModel(fakeDao: FakeUserSessionDao): HomeViewModel {
-        val repository = AuthRepository(
+        val authRepository = AuthRepository(
             authApi = FakeAuthApi(),
             tokenManager = TokenManager(fakeDao),
             ioDispatcher = mainDispatcherRule.dispatcher
         )
-        return HomeViewModel(repository)
+        val gameRepository = GameRepository(
+            gameRemoteDataSource = GameRemoteDataSource(FakeGameApi()),
+            gameLocalDataSource = GameLocalDataSource(FakeGameDao()),
+            ioDispatcher = mainDispatcherRule.dispatcher
+        )
+        return HomeViewModel(authRepository, gameRepository)
+    }
+
+    private class FakeGameApi : GameApi {
+        override suspend fun getGames(): List<GameDto> = emptyList()
+
+        override suspend fun getGamesByCategory(categoryName: String): List<GameDto> = emptyList()
+
+        override suspend fun getAvailableGames(): List<GameDto> = emptyList()
+
+        override suspend fun getGameById(id: Long): GameDto = GameDto(
+            id = id,
+            nombre = "Juego test",
+            numJugadores = "2-4",
+            categoria = CategoriaDto(1L, "Familiares"),
+            disponible = true,
+            descripcion = null,
+            rutaImagen = null
+        )
+    }
+
+    private class FakeGameDao : GameDao {
+        override suspend fun getAll(): List<GameEntity> = emptyList()
+
+        override suspend fun getByCategory(categoryName: String): List<GameEntity> = emptyList()
+
+        override suspend fun getAvailable(): List<GameEntity> = emptyList()
+
+        override suspend fun getById(id: Long): GameEntity? = null
+
+        override suspend fun upsertAll(games: List<GameEntity>) = Unit
+
+        override suspend fun clearAll() = Unit
     }
 }
 

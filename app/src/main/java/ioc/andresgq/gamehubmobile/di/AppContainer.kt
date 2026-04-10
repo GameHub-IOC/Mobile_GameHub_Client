@@ -4,11 +4,16 @@ import android.content.Context
 import androidx.room.Room
 import ioc.andresgq.gamehubmobile.BuildConfig
 import ioc.andresgq.gamehubmobile.data.local.AppDatabase
+import ioc.andresgq.gamehubmobile.data.local.GameLocalDataSource
 import ioc.andresgq.gamehubmobile.data.local.TokenManager
 import ioc.andresgq.gamehubmobile.data.remote.AuthApi
 import ioc.andresgq.gamehubmobile.data.remote.GameApi
+import ioc.andresgq.gamehubmobile.data.remote.GameRemoteDataSource
+import ioc.andresgq.gamehubmobile.data.remote.ReservationApi
+import ioc.andresgq.gamehubmobile.data.remote.ReservationRemoteDataSource
 import ioc.andresgq.gamehubmobile.data.repository.AuthRepository
 import ioc.andresgq.gamehubmobile.data.repository.GameRepository
+import ioc.andresgq.gamehubmobile.data.repository.ReservationRepository
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -34,6 +39,11 @@ interface AppContainer {
      * Repositorio encargado del acceso al catálogo de juegos.
      */
     val gameRepository: GameRepository
+
+    /**
+     * Repositorio encargado de crear reservas.
+     */
+    val reservationRepository: ReservationRepository
 }
 
 /**
@@ -140,6 +150,11 @@ class DefaultAppContainer(context: Context) : AppContainer {
     private val gameApi = retrofit.create(GameApi::class.java)
 
     /**
+     * Implementación de [ReservationApi] generada por Retrofit.
+     */
+    private val reservationApi = retrofit.create(ReservationApi::class.java)
+
+    /**
      * Base de datos local de la aplicación construida con Room.
      *
      * Se crea con el nombre `gamehub.db` y se apoya en la clase [AppDatabase]
@@ -160,6 +175,15 @@ class DefaultAppContainer(context: Context) : AppContainer {
      */
     private val tokenManager = TokenManager(appDatabase.userSessionDao())
 
+    /** Fuente de datos remota del catálogo de juegos. */
+    private val gameRemoteDataSource = GameRemoteDataSource(gameApi)
+
+    /** Fuente de datos local del catálogo de juegos. */
+    private val gameLocalDataSource = GameLocalDataSource(appDatabase.gameDao())
+
+    /** Fuente de datos remota para reservas. */
+    private val reservationRemoteDataSource = ReservationRemoteDataSource(reservationApi)
+
     /**
      * Repositorio de autenticación expuesto por el contenedor.
      */
@@ -172,7 +196,14 @@ class DefaultAppContainer(context: Context) : AppContainer {
      * Repositorio de juegos expuesto por el contenedor.
      */
     override val gameRepository: GameRepository = GameRepository(
-        gameApi = gameApi,
-        gameDao = appDatabase.gameDao() // <- AÑADIR
+        gameRemoteDataSource = gameRemoteDataSource,
+        gameLocalDataSource = gameLocalDataSource
+    )
+
+    /**
+     * Repositorio de reservas expuesto por el contenedor.
+     */
+    override val reservationRepository: ReservationRepository = ReservationRepository(
+        remoteDataSource = reservationRemoteDataSource
     )
 }

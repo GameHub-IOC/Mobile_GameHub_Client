@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
@@ -30,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import ioc.andresgq.gamehubmobile.ui.screens.home.GameItemUi
 import ioc.andresgq.gamehubmobile.ui.screens.home.resolveGameImageUrl
+import ioc.andresgq.gamehubmobile.ui.components.ErrorStateBlock
+import ioc.andresgq.gamehubmobile.ui.components.LoadingStateBlock
 import ioc.andresgq.gamehubmobile.ui.state.UiState
 
 /**
@@ -89,21 +89,12 @@ fun GameDetailScreen(
             contentAlignment = Alignment.Center
         ) {
             when (gameState) {
-                UiState.Idle, UiState.Loading -> CircularProgressIndicator()
+                UiState.Idle, UiState.Loading -> LoadingStateBlock(label = "Cargando detalle...")
 
-                is UiState.Error -> {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.padding(24.dp)
-                    ) {
-                        Text(
-                            text = gameState.message,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Button(onClick = onRetry) { Text("Reintentar") }
-                    }
-                }
+                is UiState.Error -> ErrorStateBlock(
+                    message = gameState.message,
+                    onRetry = onRetry
+                )
 
                 is UiState.Success -> GameDetailContent(game = gameState.data)
             }

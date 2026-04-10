@@ -18,7 +18,7 @@ class FakeAuthApi : AuthApi {
         rol = "USER"
     )
     var registerResponse: RegisterResponseDto = RegisterResponseDto(
-        token = "token-default",
+        id = 0L,
         nombre = "default-user",
         rol = "USER"
     )
