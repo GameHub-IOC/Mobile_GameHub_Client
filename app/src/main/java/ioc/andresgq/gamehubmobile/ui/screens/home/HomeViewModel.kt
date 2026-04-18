@@ -24,6 +24,7 @@ data class GameItemUi(
     val numJugadores: String,
     val disponible: Boolean,
     val descripcion: String?,
+    val observaciones: String?,
     val rutaImagen: String?
 )
 
@@ -89,6 +90,7 @@ class HomeViewModel(
             numJugadores = numJugadores,
             disponible = disponible,
             descripcion = descripcion,
+            observaciones = observaciones,
             rutaImagen = rutaImagen
         )
     }

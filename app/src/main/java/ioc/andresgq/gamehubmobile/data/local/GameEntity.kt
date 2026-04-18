@@ -30,6 +30,7 @@ data class GameEntity(
     val categoriaNombre: String,
     val disponible: Boolean,
     val descripcion: String?,
+    val observaciones: String? = null,
     val rutaImagen: String?
 )
 
@@ -44,6 +45,7 @@ fun GameDto.toEntity(): GameEntity = GameEntity(
     categoriaNombre = categoria.nombre,
     disponible = disponible,
     descripcion = descripcion,
+    observaciones = observaciones,
     rutaImagen = rutaImagen
 )
 
@@ -57,5 +59,6 @@ fun GameEntity.toDto(): GameDto = GameDto(
     categoria = CategoriaDto(id = categoriaId, nombre = categoriaNombre),
     disponible = disponible,
     descripcion = descripcion,
+    observaciones = observaciones,
     rutaImagen = rutaImagen
 )

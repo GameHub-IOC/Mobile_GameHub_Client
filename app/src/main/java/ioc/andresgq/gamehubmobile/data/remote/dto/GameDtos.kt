@@ -13,6 +13,7 @@ data class GameDto(
     val categoria: CategoriaDto,
     val disponible: Boolean,
     val descripcion: String? = null,
+    val observaciones: String? = null,
     val rutaImagen: String? = null
 )
 

@@ -17,7 +17,7 @@ import ioc.andresgq.gamehubmobile.data.local.AppDatabase.Companion.MIGRATION_1_2
  */
 @Database(
     entities = [UserSessionEntity::class, GameEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -37,8 +37,8 @@ abstract class AppDatabase : RoomDatabase() {
          * se conserva intacta tras la actualización.
          */
         val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL(
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
                     """
                     CREATE TABLE IF NOT EXISTS `games` (
                         `id`              INTEGER NOT NULL,
@@ -51,6 +51,23 @@ abstract class AppDatabase : RoomDatabase() {
                         `rutaImagen`      TEXT,
                         PRIMARY KEY(`id`)
                     )
+                    """.trimIndent()
+                )
+            }
+        }
+
+        /**
+         * Migración de la versión 2 a la 3.
+         *
+         * Añade la columna `observaciones` a la tabla `games` para poder
+         * desambiguar copias con el mismo nombre en el selector de reservas.
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    ALTER TABLE `games`
+                    ADD COLUMN `observaciones` TEXT
                     """.trimIndent()
                 )
             }

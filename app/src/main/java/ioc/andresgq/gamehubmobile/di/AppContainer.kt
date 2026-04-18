@@ -165,7 +165,7 @@ class DefaultAppContainer(context: Context) : AppContainer {
         AppDatabase::class.java,
         "gamehub.db"
     )
-        .addMigrations(AppDatabase.MIGRATION_1_2) // <- AÑADIR
+        .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
         .build()
 
     /**

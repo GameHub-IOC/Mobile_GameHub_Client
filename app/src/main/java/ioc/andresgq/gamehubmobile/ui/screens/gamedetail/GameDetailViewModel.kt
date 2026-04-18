@@ -56,6 +56,7 @@ class GameDetailViewModel(
         numJugadores = numJugadores,
         disponible = disponible,
         descripcion = descripcion,
+        observaciones = observaciones,
         rutaImagen = rutaImagen
     )
 }
