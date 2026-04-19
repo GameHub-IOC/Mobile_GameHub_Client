@@ -26,8 +26,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import ioc.andresgq.gamehubmobile.ui.screens.home.GameItemUi
-import ioc.andresgq.gamehubmobile.ui.screens.home.resolveGameImageUrl
+import ioc.andresgq.gamehubmobile.ui.screens.gamecatalog.GameItemUi
+import ioc.andresgq.gamehubmobile.ui.screens.gamecatalog.resolveGameImageUrl
 import ioc.andresgq.gamehubmobile.ui.components.ErrorStateBlock
 import ioc.andresgq.gamehubmobile.ui.components.LoadingStateBlock
 import ioc.andresgq.gamehubmobile.ui.state.UiState

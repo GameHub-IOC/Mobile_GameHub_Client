@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import ioc.andresgq.gamehubmobile.data.remote.dto.GameDto
 import ioc.andresgq.gamehubmobile.data.repository.GameRepository
-import ioc.andresgq.gamehubmobile.ui.screens.home.GameItemUi
+import ioc.andresgq.gamehubmobile.ui.screens.gamecatalog.GameItemUi
 import ioc.andresgq.gamehubmobile.ui.state.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
