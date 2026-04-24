@@ -32,6 +32,8 @@ class GameRepository(
     /**
      * Recupera el catálogo completo de juegos.
      * Fallback: todos los juegos almacenados en caché.
+     *
+     * @return lista de juegos devueltos por el servidor.
      */
     suspend fun getGames(): Result<List<GameDto>> =
         executeWithCache(
@@ -45,6 +47,7 @@ class GameRepository(
      * Fallback: juegos de esa categoría almacenados en caché.
      *
      * @param categoryName nombre de la categoría por la que filtrar.
+     * @return lista de juegos devueltos por el servidor.
      */
     suspend fun getGamesByCategory(categoryName: String): Result<List<GameDto>> {
         val normalized = categoryName.trim()
@@ -61,6 +64,8 @@ class GameRepository(
     /**
      * Recupera únicamente los juegos disponibles.
      * Fallback: juegos disponibles almacenados en caché.
+     *
+     * @return lista de juegos devueltos por el servidor.
      */
     suspend fun getAvailableGames(): Result<List<GameDto>> =
         executeWithCache(
@@ -74,6 +79,7 @@ class GameRepository(
      * Fallback: juego almacenado en caché local si existe.
      *
      * @param id identificador único del juego.
+     * @return el juego con el identificador especificado.
      */
     suspend fun getGameById(id: Long): Result<GameDto> = withContext(ioDispatcher) {
         try {
@@ -111,6 +117,8 @@ class GameRepository(
      * @param request       llamada suspendida a la API remota.
      * @param cacheFallback consulta local como respaldo ante fallos de red.
      * @param cacheUpdate   acción para persistir los datos remotos en Room.
+     *
+     * @return resultado de la operación.
      */
     private suspend fun executeWithCache(
         request: suspend () -> List<GameDto>,

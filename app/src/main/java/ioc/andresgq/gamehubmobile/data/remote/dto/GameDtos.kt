@@ -17,16 +17,6 @@ data class GameDto(
     val rutaImagen: String? = null
 )
 
-/**
- * DTO mínimo para la categoría asociada a un juego.
- *
- * Si el backend devuelve más campos dentro de `categoria`, Gson puede ignorarlos
- * sin problema mientras existan al menos estos.
- */
-data class CategoriaDto(
-    val id: Long,
-    val nombre: String
-)
 
 /**
  * Respuesta típica para endpoint de listado: GET /games

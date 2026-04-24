@@ -62,6 +62,22 @@ interface AppContainer {
  * contexto de aplicación y así evitar fugas de memoria.
  *
  * @param context contexto desde el que se inicializan dependencias que requieren acceso al sistema.
+ * @constructor Crea un contenedor de dependencias para la aplicación.
+ * @property authRepository repositorio de autenticación.
+ * @property gameRepository repositorio de juegos.
+ * @property reservationRepository repositorio de reservas.
+ * @property tokenManager gestor de tokens de autenticación.
+ * @property gameRemoteDataSource fuente remota de juegos.
+ * @property gameLocalDataSource fuente local de juegos.
+ * @property reservationRemoteDataSource fuente remota de reservas.
+ * @property loggingInterceptor interceptor de logging para peticiones y respuestas HTTP.
+ * @property authInterceptor interceptor que añade el token de autenticación a las peticiones.
+ * @property okHttpClient cliente HTTP configurado con interceptores.
+ * @property retrofit instancia de Retrofit para interactuar con la API.
+ * @property authApi servicio de autenticación de la API.
+ * @property gameApi servicio de juegos de la API.
+ * @property reservationApi servicio de reservas de la API.
+ * @property appDatabase base de datos local de la aplicación.
  */
 class DefaultAppContainer(context: Context) : AppContainer {
 

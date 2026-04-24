@@ -98,36 +98,22 @@ class AuthRepository(
     }
 
     /**
-     * Cierra la sesión del usuario eliminando la información persistida localmente.
+     * Cierra la sesión del usuario.
      *
-     * Esta operación no realiza ninguna llamada remota en el código actual; simplemente
-     * borra la sesión guardada usando [TokenManager]. Se ejecuta en [Dispatchers.IO]
-     * por tratarse de una operación de almacenamiento.
+     * Notifica al servidor (para auditoría) y luego borra la sesión local.
+     * Si la llamada al servidor falla, se ignora el error y se procede a limpiar localmente.
      */
     suspend fun logout() {
         withContext(ioDispatcher) {
+            try {
+                authApi.logout()
+            } catch (_: Exception) {
+                // JWT es stateless: aunque la llamada falle, limpiamos localmente
+            }
             tokenManager.clearSession()
         }
     }
 
-    /**
-     * Registra un nuevo usuario con los datos proporcionados.
-     *
-     * La operación se ejecuta en el dispatcher de entrada/salida ([Dispatchers.IO]),
-     * ya que implica una llamada de red y una escritura en almacenamiento local.
-     *
-     * Flujo del método:
-     * 1. Construye un [RegisterRequestDto] con los datos del nuevo usuario.
-     * 2. Llama al endpoint remoto de registro usando [authApi].
-     * 3. Convierte la respuesta en un objeto de dominio [UserSession].
-     * 4. Guarda la sesión localmente mediante [tokenManager].
-     * 5. Devuelve el resultado encapsulado en [Result].
-     *
-     * También captura errores frecuentes para devolver mensajes más comprensibles:
-     * - [HttpException] para errores HTTP del servidor.
-     * - [IOException] para problemas de conectividad.
-     * - [Exception] para cualquier otro error inesperado.
-     */
     suspend fun register(
         username: String,
         password: String
@@ -137,8 +123,7 @@ class AuthRepository(
                 authApi.register(
                     RegisterRequestDto(
                         nombre = username,
-                        password = password,
-                        rol = "USER"
+                        password = password
                     )
                 )
                 Result.success(Unit)

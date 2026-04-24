@@ -33,17 +33,14 @@ data class LoginResponseDto(
 /**
  * DTO usado para enviar las credenciales de registro al servidor.
  *
- * Esta clase representa el cuerpo de la petición de registro y contiene
- * los datos mínimos que la API necesita para crear un nuevo usuario.
+ * El servidor asigna el rol 'USER' por defecto; no es necesario enviarlo.
  *
  * @property nombre nombre de usuario enviado al backend.
  * @property password contraseña asociada al usuario.
- * @property rol rol o tipo de usuario enviado al backend.
  */
 data class RegisterRequestDto(
     val nombre: String,
-    val password: String,
-    val rol: String
+    val password: String
 )
 
 // La respuesta puede reutilizar LoginResponseDto si el servidor

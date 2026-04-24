@@ -22,6 +22,13 @@ import androidx.compose.ui.unit.dp
 import ioc.andresgq.gamehubmobile.data.model.UserSession
 import ioc.andresgq.gamehubmobile.ui.state.UiState
 
+/**
+ * Composable que representa la pantalla de inicio de sesión.
+ *
+ * @param viewModel El ViewModel asociado a la pantalla de inicio de sesión.
+ * @param onLoginSuccess Callback que se llama cuando la autenticación es exitosa.
+ * @param onNavigateToRegister Callback que se llama cuando se debe navegar a la pantalla de registro.
+ */
 @Composable
 fun LoginRoute(
     viewModel: LoginViewModel,
@@ -48,6 +55,19 @@ fun LoginRoute(
     )
 }
 
+/**
+ * Composable que representa la pantalla de inicio de sesión.
+ *
+ * @param username El nombre de usuario ingresado por el usuario.
+ * @param password La contraseña ingresada por el usuario.
+ * @param uiState El estado actual de la pantalla de inicio de sesión.
+ * @param onUsernameChange Callback que se llama cuando cambia el nombre de usuario.
+ * @param onPasswordChange Callback que se llama cuando cambia la contraseña.
+ * @param onNavigateToRegister Callback que se llama cuando se debe navegar a la pantalla de registro.
+ * @param onLoginClick Callback que se llama cuando se intenta iniciar sesión.
+ * @param onDismissError Callback que se llama cuando se debe ocultar el mensaje de error.
+ * @param modifier Modificador para personalizar la apariencia y el comportamiento de la pantalla.
+ */
 @Composable
 fun LoginScreen(
     username: String,

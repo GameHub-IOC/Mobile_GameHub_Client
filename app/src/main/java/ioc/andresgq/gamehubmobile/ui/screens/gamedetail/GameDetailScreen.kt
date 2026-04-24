@@ -102,6 +102,11 @@ fun GameDetailScreen(
     }
 }
 
+/**
+ * Composable que muestra el contenido del detalle de un juego.
+ *
+ * @param game juego a mostrar.
+ */
 @Composable
 private fun GameDetailContent(game: GameItemUi) {
     Column(
@@ -166,6 +171,12 @@ private fun GameDetailContent(game: GameItemUi) {
     }
 }
 
+/**
+ * Composable que muestra una fila de detalle con un [label] y un [value].
+ *
+ * @param label etiqueta a mostrar.
+ * @param value valor a mostrar.
+ */
 @Composable
 private fun DetailRow(label: String, value: String) {
     Row(

@@ -61,6 +61,12 @@ class GameDetailViewModel(
     )
 }
 
+/**
+ * Factory para crear instancias de [GameDetailViewModel].
+ *
+ * @param gameRepository repositorio del catálogo de juegos.
+ * @param gameId         identificador del juego a mostrar.
+ */
 class GameDetailViewModelFactory(
     private val gameRepository: GameRepository,
     private val gameId: Long

@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel para el registro de usuarios.
+ */
 class RegisterViewModel(
     private val authRepository: AuthRepository
 ) : ViewModel() {
@@ -27,18 +30,30 @@ class RegisterViewModel(
     private val _uiState = MutableStateFlow<UiState<Unit>>(UiState.Idle)
     val uiState: StateFlow<UiState<Unit>> = _uiState.asStateFlow()
 
+    /**
+     * Actualiza el nombre de usuario.
+     */
     fun onUsernameChange(v: String) {
         username = v
     }
 
+    /**
+     * Actualiza la contraseña.
+     */
     fun onPasswordChange(v: String) {
         password = v
     }
 
+    /**
+     * Actualiza la confirmación de contraseña.
+     */
     fun onConfirmPasswordChange(v: String) {
         confirmPassword = v
     }
 
+    /**
+     * Registra un nuevo usuario.
+     */
     fun register() {
         when {
             username.isBlank() ->
@@ -67,11 +82,17 @@ class RegisterViewModel(
         }
     }
 
+    /**
+     * Limpia el estado de error si está presente.
+     */
     fun clearError() {
         if (_uiState.value is UiState.Error) _uiState.value = UiState.Idle
     }
 }
 
+/**
+ * Fábrica de ViewModel para el registro de usuarios.
+ */
 class RegisterViewModelFactory(
     private val authRepository: AuthRepository
 ) : ViewModelProvider.Factory {
