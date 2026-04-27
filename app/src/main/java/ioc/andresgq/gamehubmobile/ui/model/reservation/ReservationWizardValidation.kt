@@ -46,7 +46,13 @@ fun validateCurrentStep(state: ReservationWizardState): ReservationStepValidatio
             }
         }
 
-        ReservationWizardStep.GAME -> ReservationStepValidation(true)
+        ReservationWizardStep.GAME -> {
+            if (draft.juegoId == null) {
+                ReservationStepValidation(false, "Selecciona un juego para continuar")
+            } else {
+                ReservationStepValidation(true)
+            }
+        }
 
         ReservationWizardStep.CONFIRMATION -> validateForSubmit(state)
     }
@@ -75,6 +81,9 @@ fun validateForSubmit(state: ReservationWizardState): ReservationStepValidation 
     }
     if (draft.mesaId == null || draft.mesaId <= 0L) {
         return ReservationStepValidation(false, "Falta la mesa")
+    }
+    if (draft.juegoId == null) {
+        return ReservationStepValidation(false, "Falta seleccionar un juego")
     }
 
     if (state.role == UserRole.ADMIN && draft.usuarioNombre.isNullOrBlank()) {

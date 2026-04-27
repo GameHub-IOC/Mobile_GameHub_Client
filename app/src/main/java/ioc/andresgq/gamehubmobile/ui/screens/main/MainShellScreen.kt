@@ -1,17 +1,27 @@
 package ioc.andresgq.gamehubmobile.ui.screens.main
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -20,6 +30,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -28,7 +39,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -103,6 +117,7 @@ fun MainShellRoute(
     val needsTableRecovery by reservationFlowViewModel.needsTableRecovery.collectAsState()
     val turnOptionsState by reservationFlowViewModel.turnOptionsState.collectAsState()
     val tableOptionsState by reservationFlowViewModel.tableOptionsState.collectAsState()
+    val allTablesState by reservationFlowViewModel.allTablesState.collectAsState()
 
     val myReservationsState by reservationListViewModel.myReservationsState.collectAsState()
     val adminReservationsState by reservationListViewModel.adminReservationsState.collectAsState()
@@ -182,12 +197,18 @@ fun MainShellRoute(
                         selected = isSelected,
                         onClick = {
                             mainNavigationViewModel.selectSection(tab.section)
+                            val isHomeTab = tab.route == MainTabRoutes.HOME
                             tabNavController.navigate(tab.route) {
                                 popUpTo(tabNavController.graph.findStartDestination().id) {
-                                    saveState = true
+                                    // Al volver al HOME nunca guardamos el estado de la pestaña
+                                    // actual para no contaminarlo con rutas del wizard u otras.
+                                    saveState = !isHomeTab
                                 }
                                 launchSingleTop = true
-                                restoreState = true
+                                // Para HOME: nunca restaurar estado guardado bajo su clave
+                                // (evita que el wizard u otra ruta vuelva a aparecer en el
+                                // dashboard). Para el resto de pestañas, sí restaurar.
+                                restoreState = !isHomeTab
                             }
                         },
                         icon = { Text(tab.label.take(1)) },
@@ -260,6 +281,7 @@ fun MainShellRoute(
                     needsTableRecovery = needsTableRecovery,
                     turnOptionsState = turnOptionsState,
                     tableOptionsState = tableOptionsState,
+                    allTablesState = allTablesState,
                     catalogState = catalogState,
                     onDateChange = reservationFlowViewModel::updateDate,
                     onSelectTurn = reservationFlowViewModel::selectTurn,
@@ -375,6 +397,7 @@ private fun CatalogTabScreen(
  * limita a representar el estado actual, mostrar validaciones y ofrecer acciones
  * de reintento o recuperación cuando cambian las disponibilidades.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReservationWizardTabScreen(
     role: UserRole,
@@ -385,6 +408,7 @@ private fun ReservationWizardTabScreen(
     needsTableRecovery: Boolean,
     turnOptionsState: UiState<List<ReservationTurnOption>>,
     tableOptionsState: UiState<List<ReservationTableOption>>,
+    allTablesState: UiState<List<ReservationTableOption>>,
     catalogState: UiState<List<GameItemUi>>,
     onDateChange: (String) -> Unit,
     onSelectTurn: (Long, String?) -> Unit,
@@ -426,13 +450,72 @@ private fun ReservationWizardTabScreen(
             // Paso 1: captura de fecha base sobre la que se calculan mesas libres.
             ReservationWizardStep.DATE -> {
                 item {
-                    OutlinedTextField(
-                        value = draft.fecha,
-                        onValueChange = onDateChange,
-                        label = { Text("Fecha (yyyy-MM-dd)") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                    var showDatePicker by remember { mutableStateOf(false) }
+
+                    // Convierte "yyyy-MM-dd" del draft a millis UTC para inicializar el picker
+                    val initialMillis: Long? = remember(draft.fecha) {
+                        runCatching {
+                            val parts = draft.fecha.split("-")
+                            if (parts.size == 3) {
+                                val cal = java.util.Calendar.getInstance(
+                                    java.util.TimeZone.getTimeZone("UTC")
+                                )
+                                cal.set(
+                                    parts[0].toInt(),
+                                    parts[1].toInt() - 1,
+                                    parts[2].toInt(),
+                                    0, 0, 0
+                                )
+                                cal.set(java.util.Calendar.MILLISECOND, 0)
+                                cal.timeInMillis
+                            } else null
+                        }.getOrNull()
+                    }
+
+                    val datePickerState = rememberDatePickerState(
+                        initialSelectedDateMillis = initialMillis
                     )
+
+                    // Botón que muestra la fecha seleccionada o invita a elegir una
+                    OutlinedButton(
+                        onClick = { showDatePicker = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = if (draft.fecha.isBlank()) "Seleccionar fecha" else draft.fecha
+                        )
+                    }
+
+                    if (showDatePicker) {
+                        DatePickerDialog(
+                            onDismissRequest = { showDatePicker = false },
+                            confirmButton = {
+                                Button(onClick = {
+                                    val millis = datePickerState.selectedDateMillis
+                                    if (millis != null) {
+                                        val cal = java.util.Calendar.getInstance(
+                                            java.util.TimeZone.getTimeZone("UTC")
+                                        )
+                                        cal.timeInMillis = millis
+                                        val fecha = "%04d-%02d-%02d".format(
+                                            cal.get(java.util.Calendar.YEAR),
+                                            cal.get(java.util.Calendar.MONTH) + 1,
+                                            cal.get(java.util.Calendar.DAY_OF_MONTH)
+                                        )
+                                        onDateChange(fecha)
+                                    }
+                                    showDatePicker = false
+                                }) { Text("Aceptar") }
+                            },
+                            dismissButton = {
+                                OutlinedButton(onClick = { showDatePicker = false }) {
+                                    Text("Cancelar")
+                                }
+                            }
+                        ) {
+                            DatePicker(state = datePickerState)
+                        }
+                    }
                 }
             }
 
@@ -484,25 +567,36 @@ private fun ReservationWizardTabScreen(
                 }
             }
 
-            // Paso 3: mesa concreta. Solo se muestran mesas libres devueltas por backend.
+            // Paso 3: mapa visual de mesas. Verde = libre (filtradas por fecha+turno desde
+            // GET /mesas/libres?fecha=…&turnoId=…); gris = no disponible en ese turno.
             ReservationWizardStep.TABLE -> {
-                item { Text("Selecciona una mesa") }
-                when (tableOptionsState) {
-                    UiState.Idle -> item {
-                        Text("Selecciona fecha y turno para cargar mesas libres")
+                item {
+                    Text("Selecciona una mesa")
+                    Text(
+                        text = "Mesas disponibles para ${draft.fecha.ifBlank { "–" }}" +
+                            " · turno ${draft.turnoNombre ?: draft.turnoId?.toString() ?: "–"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                when {
+                    // Si todavía no se eligió fecha/turno, indicamos que hace falta.
+                    tableOptionsState == UiState.Idle -> item {
+                        Text("Selecciona fecha y turno para ver las mesas disponibles")
                     }
 
-                    UiState.Loading -> item {
+                    tableOptionsState == UiState.Loading || allTablesState == UiState.Loading -> item {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.Center
                         ) { CircularProgressIndicator() }
                     }
 
-                    is UiState.Error -> {
+                    tableOptionsState is UiState.Error -> {
                         item {
                             Text(
-                                text = tableOptionsState.message,
+                                text = (tableOptionsState as UiState.Error).message,
                                 color = MaterialTheme.colorScheme.error
                             )
                         }
@@ -513,11 +607,39 @@ private fun ReservationWizardTabScreen(
                         }
                     }
 
-                    is UiState.Success -> {
-                        if (tableOptionsState.data.isEmpty()) {
+                    // Mapa visual: todas las mesas operativas, coloreadas según disponibilidad.
+                    allTablesState is UiState.Success -> {
+                        val allTables = (allTablesState as UiState.Success<List<ReservationTableOption>>).data
+                        val freeTables = (tableOptionsState as? UiState.Success<List<ReservationTableOption>>)?.data.orEmpty()
+                        val freeIds = freeTables.map { it.id }.toSet()
+
+                        item {
+                            TableMapGrid(
+                                allTables = allTables,
+                                freeTableIds = freeIds,
+                                selectedTableNumero = draft.mesaNumero,
+                                onSelectTable = onSelectTable
+                            )
+                        }
+                        item { TableMapLegend() }
+
+                        if (freeTables.isEmpty()) {
+                            item {
+                                Text(
+                                    "No hay mesas libres para la fecha y turno seleccionados",
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+
+                    // Fallback: lista simple si no hay estado de todas las mesas.
+                    tableOptionsState is UiState.Success -> {
+                        val tables = (tableOptionsState as UiState.Success<List<ReservationTableOption>>).data
+                        if (tables.isEmpty()) {
                             item { Text("No hay mesas operativas en este momento") }
                         } else {
-                            items(tableOptionsState.data, key = { it.numero }) { tableOption ->
+                            items(tables, key = { it.numero }) { tableOption ->
                                 FilterChip(
                                     selected = draft.mesaNumero == tableOption.numero,
                                     onClick = { onSelectTable(tableOption.numero, tableOption.id) },
@@ -526,13 +648,22 @@ private fun ReservationWizardTabScreen(
                             }
                         }
                     }
+
+                    else -> item { Text("Selecciona fecha y turno para cargar mesas libres") }
                 }
             }
 
-            // Paso 4: selección opcional de juego. El filtro ayuda a reducir el
-            // catálogo sin abandonar el flujo principal de reserva.
+            // Paso 4: selección de juego requerida. Solo los juegos disponibles
+            // pueden elegirse. El filtro ayuda a reducir el catálogo.
             ReservationWizardStep.GAME -> {
-                item { Text("Juego opcional") }
+                item {
+                    Text("Selecciona un juego")
+                    Text(
+                        text = "Solo los juegos disponibles pueden reservarse",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 item {
                     OutlinedTextField(
                         value = gameFilterQuery,
@@ -587,6 +718,7 @@ private fun ReservationWizardTabScreen(
                             }
                             FilterChip(
                                 selected = selected,
+                                enabled = game.disponible,
                                 onClick = {
                                     if (selected) {
                                         onSelectGame(null, null, null)
@@ -761,5 +893,125 @@ private fun ProfileTabScreen(
         if (logoutState is UiState.Error) {
             Text(logoutState.message, color = MaterialTheme.colorScheme.error)
         }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mapa visual de mesas
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Cuadrícula de mesas del local.
+ *
+ * - **Verde** → libre en la fecha+turno seleccionados (presentes en [freeTableIds]).
+ * - **Gris**  → operativa pero ocupada en ese turno.
+ * - **Borde** de color primario → mesa actualmente seleccionada.
+ *
+ * Solo las mesas libres son interactivas.
+ */
+@Composable
+private fun TableMapGrid(
+    allTables: List<ReservationTableOption>,
+    freeTableIds: Set<Long>,
+    selectedTableNumero: Int?,
+    onSelectTable: (Int, Long) -> Unit
+) {
+    val columns = 3
+    val rows = (allTables.size + columns - 1) / columns
+    val sorted = allTables.sortedBy { it.numero }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        repeat(rows) { rowIndex ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                for (col in 0 until columns) {
+                    val idx = rowIndex * columns + col
+                    if (idx < sorted.size) {
+                        val table = sorted[idx]
+                        val isFree = table.id in freeTableIds
+                        val isSelected = table.numero == selectedTableNumero
+
+                        val bgColor = when {
+                            isSelected -> MaterialTheme.colorScheme.primary
+                            isFree    -> Color(0xFF4CAF50)
+                            else      -> MaterialTheme.colorScheme.surfaceVariant
+                        }
+                        val textColor = when {
+                            isSelected -> MaterialTheme.colorScheme.onPrimary
+                            isFree    -> Color.White
+                            else      -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(bgColor)
+                                .then(
+                                    if (isFree) Modifier.clickable {
+                                        onSelectTable(table.numero, table.id)
+                                    } else Modifier
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "🏓",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text(
+                                    text = "${table.numero}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = textColor,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (!isFree) {
+                                    Text(
+                                        text = "Ocupada",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = textColor
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        // Celda vacía para completar la última fila
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Leyenda de colores del mapa de mesas. */
+@Composable
+private fun TableMapLegend() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        TableMapLegendItem(color = Color(0xFF4CAF50), label = "Libre")
+        TableMapLegendItem(color = MaterialTheme.colorScheme.surfaceVariant, label = "Ocupada")
+        TableMapLegendItem(color = MaterialTheme.colorScheme.primary, label = "Seleccionada")
+    }
+}
+
+@Composable
+private fun TableMapLegendItem(color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(color)
+        )
+        Text(
+            text = " $label",
+            style = MaterialTheme.typography.labelSmall
+        )
     }
 }

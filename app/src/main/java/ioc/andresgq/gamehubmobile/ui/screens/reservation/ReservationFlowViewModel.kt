@@ -17,6 +17,7 @@ import ioc.andresgq.gamehubmobile.ui.model.reservation.ReservationWizardStep
 import ioc.andresgq.gamehubmobile.ui.model.reservation.validateCurrentStep
 import ioc.andresgq.gamehubmobile.ui.model.reservation.validateForSubmit
 import ioc.andresgq.gamehubmobile.ui.state.UiState
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -54,6 +55,10 @@ class ReservationFlowViewModel(
     private val _tableOptionsState = MutableStateFlow<UiState<List<ReservationTableOption>>>(UiState.Loading)
     val tableOptionsState: StateFlow<UiState<List<ReservationTableOption>>> = _tableOptionsState.asStateFlow()
 
+    /** Todas las mesas operativas del local (estático; se usa para pintar el mapa visual). */
+    private val _allTablesState = MutableStateFlow<UiState<List<ReservationTableOption>>>(UiState.Idle)
+    val allTablesState: StateFlow<UiState<List<ReservationTableOption>>> = _allTablesState.asStateFlow()
+
     init {
         loadReservationOptions()
     }
@@ -65,12 +70,19 @@ class ReservationFlowViewModel(
         viewModelScope.launch {
             _turnOptionsState.value = UiState.Loading
             _tableOptionsState.value = UiState.Idle
+            _allTablesState.value = UiState.Loading
 
-            val turnsResult = reservationRepository.getTurnOptions()
+            // Carga en paralelo turnos y todas las mesas operativas
+            val turnsDeferred     = async { reservationRepository.getTurnOptions() }
+            val allTablesDeferred = async { reservationRepository.getOperationalTableOptions() }
 
-            _turnOptionsState.value = turnsResult.fold(
+            _turnOptionsState.value = turnsDeferred.await().fold(
                 onSuccess = { UiState.Success(it) },
                 onFailure = { UiState.Error(it.message ?: "No se pudieron cargar los turnos") }
+            )
+            _allTablesState.value = allTablesDeferred.await().fold(
+                onSuccess = { UiState.Success(it) },
+                onFailure = { UiState.Error(it.message ?: "No se pudieron cargar las mesas") }
             )
         }
     }

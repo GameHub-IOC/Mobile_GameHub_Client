@@ -173,11 +173,11 @@ class ReservationRepository(
                 Result.success(Unit)
             } catch (e: HttpException) {
                 val message = when (e.code()) {
-                    400 -> "Datos de reserva no válidos"
+                    400 -> extractBackendMessage(e) ?: "Datos de reserva no válidos"
                     401 -> "Tu sesión ha caducado"
                     403 -> "No tienes permisos para crear esta reserva"
-                    409 -> "La mesa o el turno ya no están disponibles"
-                    else -> "Error del servidor (${e.code()})"
+                    409 -> extractBackendMessage(e) ?: "La mesa o el turno ya no están disponibles"
+                    else -> extractBackendMessage(e) ?: "Error del servidor (${e.code()})"
                 }
                 Result.failure(Exception(message))
             } catch (_: IOException) {
@@ -187,6 +187,33 @@ class ReservationRepository(
             } catch (e: Exception) {
                 Result.failure(Exception("Error inesperado al crear la reserva: ${e.message}"))
             }
+        }
+    }
+
+    /**
+     * Intenta extraer el mensaje de error real del cuerpo de la respuesta HTTP.
+     *
+     * El backend Spring Boot suele devolver:
+     *   { "message": "..." }  o  { "error": "..." }  o texto plano.
+     * Si no se puede parsear, devuelve null y se usa el fallback genérico.
+     */
+    private fun extractBackendMessage(e: HttpException): String? {
+        return try {
+            val raw = e.response()?.errorBody()?.string()?.takeUnless { it.isBlank() }
+                ?: return null
+            // Intento 1: JSON con clave "message"
+            val json = com.google.gson.JsonParser.parseString(raw)
+            if (json.isJsonObject) {
+                val obj = json.asJsonObject
+                obj.get("message")?.takeIf { !it.isJsonNull }?.asString?.takeUnless { it.isBlank() }
+                    ?: obj.get("error")?.takeIf { !it.isJsonNull }?.asString?.takeUnless { it.isBlank() }
+                    ?: obj.get("detail")?.takeIf { !it.isJsonNull }?.asString?.takeUnless { it.isBlank() }
+            } else {
+                // Intento 2: texto plano
+                raw.trim().takeUnless { it.isBlank() || it.startsWith("<") }
+            }
+        } catch (_: Exception) {
+            null
         }
     }
 
