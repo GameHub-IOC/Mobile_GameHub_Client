@@ -1,6 +1,8 @@
 package ioc.andresgq.gamehubmobile.ui.screens.main
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,12 +13,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -31,6 +36,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import coil.compose.AsyncImage
+import ioc.andresgq.gamehubmobile.R
+import ioc.andresgq.gamehubmobile.ui.screens.gamecatalog.resolveGameThumbnailUrl
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -309,7 +320,37 @@ fun MainShellRoute(
             composable(MainTabRoutes.CATALOG) {
                 CatalogTabScreen(
                     catalogState = catalogState,
-                    onGameClick = onGameClick
+                    onGameClick = onGameClick,
+                    onRefresh = { catalogViewModel.loadCatalog(force = true) },
+                    onReserveClick = { game ->
+                        // 1. Reinicia el wizard a paso DATE y pre-selecciona el juego elegido
+                        reservationFlowViewModel.resetFlow()
+                        val chipLabel = buildString {
+                            append(game.nombre)
+                            append(" · #${game.id}")
+                            append(" · ${game.categoria}")
+                            append(" · Disponible")
+                            val obs = game.observaciones?.trim()
+                                .takeUnless { it.isNullOrBlank() } ?: "Sin observaciones"
+                            append(" · $obs")
+                        }
+                        reservationFlowViewModel.selectGame(game.nombre, game.id, chipLabel)
+
+                        // 2. Navega a la pestaña RESERVE (mismo patrón que onReserveNow)
+                        val targetRoute =
+                            tabs.firstOrNull { it.section == MainSection.RESERVE }?.route
+                        if (targetRoute != null) {
+                            mainNavigationViewModel.selectSection(MainSection.RESERVE)
+                            tabNavController.navigate(targetRoute) {
+                                popUpTo(MainTabRoutes.HOME) {
+                                    inclusive = false
+                                    saveState = false
+                                }
+                                launchSingleTop = true
+                                restoreState = false
+                            }
+                        }
+                    }
                 )
             }
 
@@ -381,11 +422,15 @@ private fun DashboardTabScreen(
 @Composable
 private fun CatalogTabScreen(
     catalogState: UiState<List<GameItemUi>>,
-    onGameClick: (Long) -> Unit
+    onGameClick: (Long) -> Unit,
+    onRefresh: () -> Unit,
+    onReserveClick: ((GameItemUi) -> Unit)?
 ) {
     GameListScreen(
         catalogState = catalogState,
-        onGameClick = onGameClick
+        onGameClick = onGameClick,
+        onRefresh = onRefresh,
+        onReserveClick = onReserveClick
     )
 }
 
@@ -695,46 +740,40 @@ private fun ReservationWizardTabScreen(
                                 Text("No hay juegos que coincidan con el filtro")
                             }
                         }
+                        // Paso final: resumen previo al envío. Si el rol es ADMIN se solicita
+                        // además el usuario destino de la reserva.
                         items(visibleGames, key = { it.id }) { game ->
-                            val availabilityLabel = if (game.disponible) "Disponible" else "No disponible"
                             val observationsLabel = game.observaciones
                                 ?.trim()
                                 .takeUnless { it.isNullOrBlank() }
                                 ?: "Sin observaciones"
                             val chipLabel = buildString {
                                 append(game.nombre)
-                                append(" · #")
-                                append(game.id)
-                                append(" · ")
-                                append(game.categoria)
-                                append(" · ")
-                                append(availabilityLabel)
-                                append(" · ")
-                                append(observationsLabel)
+                                append(" · #${game.id}")
+                                append(" · ${game.categoria}")
+                                append(" · ${if (game.disponible) "Disponible" else "No disponible"}")
+                                append(" · $observationsLabel")
                             }
                             val selected = when {
                                 selectedGameId != null -> selectedGameId == game.id
                                 else -> selectedGameName == game.nombre
                             }
-                            FilterChip(
+                            WizardGameCard(
+                                game = game,
                                 selected = selected,
-                                enabled = game.disponible,
-                                onClick = {
+                                onToggle = {
                                     if (selected) {
                                         onSelectGame(null, null, null)
                                     } else {
                                         onSelectGame(game.nombre, game.id, chipLabel)
                                     }
-                                },
-                                label = { Text(chipLabel) }
+                                }
                             )
-                                            // Paso final: resumen previo al envío. Si el rol es ADMIN se solicita
-                                            // además el usuario destino de la reserva.
                         }
                     }
 
                     else -> {
-                        item { Text("Carga el catalogo para elegir juego") }
+                        item { Text("Carga el catálogo para elegir juego") }
                     }
                 }
             }
@@ -892,6 +931,129 @@ private fun ProfileTabScreen(
 
         if (logoutState is UiState.Error) {
             Text(logoutState.message, color = MaterialTheme.colorScheme.error)
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tarjeta de juego para el wizard de reserva
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Tarjeta de selección de juego dentro del wizard de reserva.
+ *
+ * Reutiliza la misma estética que [ioc.andresgq.gamehubmobile.ui.screens.gamecatalog.GameCard]
+ * del catálogo, adaptada para el contexto de selección:
+ * - Borde de color primario cuando el juego está seleccionado.
+ * - Insignia "✓" superpuesta en la esquina superior derecha al estar seleccionado.
+ * - Botón "Seleccionar" / "✓ Seleccionado" en la parte inferior de la tarjeta.
+ * - Opacidad reducida y botón desactivado para los juegos no disponibles.
+ *
+ * @param game     datos del juego a mostrar.
+ * @param selected `true` si este juego es el actualmente elegido en el wizard.
+ * @param onToggle callback que alterna la selección (seleccionar si no estaba, deseleccionar si lo estaba).
+ */
+@Composable
+private fun WizardGameCard(
+    game: GameItemUi,
+    selected: Boolean,
+    onToggle: () -> Unit
+) {
+    val borderColor = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
+
+    ElevatedCard(
+        onClick = { if (game.disponible) onToggle() },
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(BorderStroke(2.dp, borderColor), RoundedCornerShape(16.dp))
+            .alpha(if (game.disponible) 1f else 0.5f)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Imagen con insignia de selección superpuesta
+            Box {
+                AsyncImage(
+                    model = resolveGameThumbnailUrl(game.rutaImagen),
+                    contentDescription = "Imagen de ${game.nombre}",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(R.drawable.ic_image_placeholder),
+                    error = painterResource(R.drawable.ic_image_placeholder)
+                )
+                if (selected) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "✓",
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            Text(
+                text = game.nombre,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Text(
+                text = "${game.categoria}  |  Jugadores: ${game.numJugadores}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Text(
+                text = if (game.disponible) "Disponible" else "No disponible",
+                style = MaterialTheme.typography.labelLarge,
+                color = if (game.disponible) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.error
+                }
+            )
+
+            if (!game.descripcion.isNullOrBlank()) {
+                Text(
+                    text = game.descripcion,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Botón de selección: solo activo si el juego está disponible
+            if (game.disponible) {
+                Button(
+                    onClick = onToggle,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = if (selected) {
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                ) {
+                    Text(if (selected) "✓ Seleccionado" else "Seleccionar")
+                }
+            }
         }
     }
 }

@@ -10,8 +10,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -23,9 +26,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import ioc.andresgq.gamehubmobile.R
 import ioc.andresgq.gamehubmobile.ui.screens.gamecatalog.GameItemUi
 import ioc.andresgq.gamehubmobile.ui.screens.gamecatalog.resolveGameImageUrl
 import ioc.andresgq.gamehubmobile.ui.components.ErrorStateBlock
@@ -72,9 +77,9 @@ fun GameDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Text(
-                            text = "<",
-                            style = MaterialTheme.typography.titleLarge
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver"
                         )
                     }
                 }
@@ -105,6 +110,9 @@ fun GameDetailScreen(
 /**
  * Composable que muestra el contenido del detalle de un juego.
  *
+ * Muestra la imagen **original** (no miniatura), nombre, disponibilidad,
+ * categoría, jugadores, descripción y observaciones del juego.
+ *
  * @param game juego a mostrar.
  */
 @Composable
@@ -114,14 +122,16 @@ private fun GameDetailContent(game: GameItemUi) {
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        // Imagen del juego (ocupa todo el ancho)
+        // Imagen original del juego (ocupa todo el ancho)
         AsyncImage(
             model = resolveGameImageUrl(game.rutaImagen),
             contentDescription = "Imagen de ${game.nombre}",
             modifier = Modifier
                 .fillMaxWidth()
                 .height(240.dp),
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Crop,
+            placeholder = painterResource(R.drawable.ic_image_placeholder),
+            error = painterResource(R.drawable.ic_image_placeholder)
         )
 
         Column(
@@ -163,6 +173,21 @@ private fun GameDetailContent(game: GameItemUi) {
                 )
                 Text(
                     text = game.descripcion,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Observaciones (estado físico de la copia, relevante para ADMIN)
+            if (!game.observaciones.isNullOrBlank()) {
+                HorizontalDivider()
+                Text(
+                    text = "Observaciones",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = game.observaciones,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
