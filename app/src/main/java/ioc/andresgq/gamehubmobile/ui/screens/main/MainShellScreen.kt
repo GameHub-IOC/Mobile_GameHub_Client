@@ -28,14 +28,28 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
+import ioc.andresgq.gamehubmobile.ui.screens.dashboard.ReservationStatusChip
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -84,6 +98,7 @@ import ioc.andresgq.gamehubmobile.ui.screens.profile.ProfileViewModel
 import ioc.andresgq.gamehubmobile.ui.screens.reservation.ReservationFlowViewModel
 import ioc.andresgq.gamehubmobile.ui.screens.reservations.AdminReservationsScreen
 import ioc.andresgq.gamehubmobile.ui.screens.reservations.MyReservationsScreen
+import ioc.andresgq.gamehubmobile.ui.screens.reservations.ReservationListItemUi
 import ioc.andresgq.gamehubmobile.ui.screens.reservations.ReservationListViewModel
 import ioc.andresgq.gamehubmobile.ui.state.UiState
 
@@ -101,6 +116,21 @@ import ioc.andresgq.gamehubmobile.ui.state.UiState
  * También actúa como punto de composición de las pantallas de primer nivel
  * mostradas dentro del `bottom navigation`.
  */
+
+/**
+ * Devuelve el icono adecuado para cada sección de la barra de navegación inferior.
+ */
+private fun iconForSection(section: MainSection) = when (section) {
+    MainSection.HOME               -> Icons.Filled.Home
+    MainSection.RESERVE            -> Icons.Filled.DateRange
+    MainSection.MY_RESERVATIONS    -> Icons.Filled.List
+    MainSection.CATALOG            -> Icons.Filled.Star
+    MainSection.ADMIN_RESERVATIONS -> Icons.Filled.List
+    MainSection.MANAGEMENT         -> Icons.Filled.Settings
+    MainSection.USERS              -> Icons.Filled.Search
+    MainSection.PROFILE            -> Icons.Filled.AccountCircle
+}
+
 @Composable
 fun MainShellRoute(
     role: UserRole,
@@ -222,7 +252,12 @@ fun MainShellRoute(
                                 restoreState = !isHomeTab
                             }
                         },
-                        icon = { Text(tab.label.take(1)) },
+                        icon = {
+                            Icon(
+                                imageVector = iconForSection(tab.section),
+                                contentDescription = tab.label
+                            )
+                        },
                         label = { Text(tab.label) }
                     )
                 }
@@ -371,12 +406,37 @@ fun MainShellRoute(
             }
 
             composable(MainTabRoutes.PROFILE) {
+                val reservationsSummaryState = if (role == UserRole.USER) {
+                    myReservationsState
+                } else {
+                    adminReservationsState
+                }
                 ProfileTabScreen(
+                    role = role,
                     profileState = profileState,
                     logoutState = logoutState,
-                    onReloadProfile = profileViewModel::loadProfile,
+                    myReservationsState = reservationsSummaryState,
                     onLogout = profileViewModel::logout,
-                    onCloseApp = onCloseApp
+                    onCloseApp = onCloseApp,
+                    onViewReservations = {
+                        val targetSection = if (role == UserRole.USER) {
+                            MainSection.MY_RESERVATIONS
+                        } else {
+                            MainSection.ADMIN_RESERVATIONS
+                        }
+                        val targetRoute = tabs.firstOrNull { it.section == targetSection }?.route
+                        if (targetRoute != null) {
+                            mainNavigationViewModel.selectSection(targetSection)
+                            tabNavController.navigate(targetRoute) {
+                                popUpTo(MainTabRoutes.HOME) {
+                                    inclusive = false
+                                    saveState = false
+                                }
+                                launchSingleTop = true
+                                restoreState = false
+                            }
+                        }
+                    }
                 )
             }
         }
@@ -898,39 +958,284 @@ private fun ReservationWizardTabScreen(
 /** Pantalla de perfil mostrada como pestaña final dentro del shell autenticado. */
 @Composable
 private fun ProfileTabScreen(
+    role: UserRole,
     profileState: UiState<ProfileInfo>,
     logoutState: UiState<Unit>,
-    onReloadProfile: () -> Unit,
+    myReservationsState: UiState<List<ReservationListItemUi>>,
     onLogout: () -> Unit,
-    onCloseApp: () -> Unit
+    onCloseApp: () -> Unit,
+    onViewReservations: () -> Unit
 ) {
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(vertical = 20.dp)
     ) {
-        Text("Perfil", style = MaterialTheme.typography.titleLarge)
 
-        when (profileState) {
-            UiState.Idle, UiState.Loading -> CircularProgressIndicator()
-            is UiState.Error -> Text(profileState.message, color = MaterialTheme.colorScheme.error)
-            is UiState.Success -> {
-                Text("Usuario: ${profileState.data.username}")
-                Text("Rol: ${profileState.data.userType}")
+        // ─── 1. Avatar + nombre + rol ────────────────────────────────────
+        item {
+            when (profileState) {
+                UiState.Idle, UiState.Loading -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    }
+                }
+
+                is UiState.Error -> {
+                    Text(
+                        text = profileState.message,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                is UiState.Success -> {
+                    val info = profileState.data
+                    val initials = info.username
+                        .trim()
+                        .split("\\s+".toRegex())
+                        .mapNotNull { it.firstOrNull()?.uppercaseChar() }
+                        .take(2)
+                        .joinToString("")
+                        .ifBlank { "?" }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = initials,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = info.username,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            val chipBg = if (role == UserRole.ADMIN)
+                                MaterialTheme.colorScheme.tertiaryContainer
+                            else
+                                MaterialTheme.colorScheme.secondaryContainer
+                            val chipContent = if (role == UserRole.ADMIN)
+                                MaterialTheme.colorScheme.onTertiaryContainer
+                            else
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = chipBg,
+                                contentColor = chipContent
+                            ) {
+                                Text(
+                                    text = if (role == UserRole.ADMIN) "ADMIN" else "USUARIO",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onReloadProfile) { Text("Recargar") }
-            Button(onClick = onLogout, enabled = logoutState !is UiState.Loading) {
-                Text(if (logoutState is UiState.Loading) "Cerrando..." else "Cerrar sesion")
-            }
-            OutlinedButton(onClick = onCloseApp) { Text("Salir") }
+        // ─── 2. Resumen de reservas ──────────────────────────────────────
+        item {
+            ProfileReservationsSummaryCard(
+                role = role,
+                myReservationsState = myReservationsState,
+                onViewAll = onViewReservations
+            )
         }
 
-        if (logoutState is UiState.Error) {
-            Text(logoutState.message, color = MaterialTheme.colorScheme.error)
+        // ─── 3. Acciones de cuenta ───────────────────────────────────────
+        item {
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "Cuenta",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = onLogout,
+                            enabled = logoutState !is UiState.Loading,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                if (logoutState is UiState.Loading) "Cerrando..." else "Cerrar sesión"
+                            )
+                        }
+                        OutlinedButton(
+                            onClick = onCloseApp,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Salir")
+                        }
+                    }
+                    if (logoutState is UiState.Error) {
+                        Text(
+                            text = logoutState.message,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Tarjeta de resumen de reservas del usuario, mostrada dentro del perfil.
+ *
+ * - Para rol USER muestra "Mis reservas" con contador y las 2 últimas.
+ * - Para rol ADMIN muestra "Reservas globales" con contador y las 2 últimas.
+ * - "Ver todas" navega a la pestaña correspondiente.
+ */
+@Composable
+private fun ProfileReservationsSummaryCard(
+    role: UserRole,
+    myReservationsState: UiState<List<ReservationListItemUi>>,
+    onViewAll: () -> Unit
+) {
+    val sectionTitle = if (role == UserRole.ADMIN) "Reservas globales" else "Mis reservas"
+
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = sectionTitle,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                TextButton(onClick = onViewAll) {
+                    Text("Ver todas", style = MaterialTheme.typography.labelMedium)
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            when (myReservationsState) {
+                UiState.Idle, UiState.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                }
+
+                is UiState.Error -> {
+                    Text(
+                        text = myReservationsState.message,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                is UiState.Success -> {
+                    val list = myReservationsState.data
+                    if (list.isEmpty()) {
+                        Text(
+                            text = "Todavía no hay reservas registradas",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                    } else {
+                        Text(
+                            text = "${list.size} reserva${if (list.size != 1) "s" else ""} en total",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        list.take(2).forEachIndexed { index, item ->
+                            if (index > 0) {
+                                HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                )
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(end = 8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Text(
+                                        text = "📅 ${item.fecha}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = "${item.turnoNombre} · Mesa ${item.mesaNumero ?: "—"}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                ReservationStatusChip(estado = item.estado)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

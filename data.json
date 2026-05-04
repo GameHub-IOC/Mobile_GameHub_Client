@@ -1,0 +1,2407 @@
+{
+  "openapi":"3.0.1",
+  "info":{
+    "title":"GameHub",
+    "description":"Documentacion de la app",
+    "version":"1.0"
+  },
+  "servers":[
+    {
+      "url":"http://localhost:8081",
+      "description":"Generated server url"
+    }
+  ],
+  "security":[
+    {
+      "BearerAuth":[
+
+      ]
+    }
+  ],
+  "tags":[
+    {
+      "name":"Autenticación",
+      "description":"Endpoints para el acceso, registro y salida de usuarios"
+    },
+    {
+      "name":"Juegos",
+      "description":"Gestion administrativa de juegos"
+    },
+    {
+      "name":"Categorías",
+      "description":"Gestión del catálogo de categorías de juegos"
+    },
+    {
+      "name":"Turnos",
+      "description":"Gestion administrativa de los turnos"
+    },
+    {
+      "name":"Mesas",
+      "description":"Gestion del inventario de las mesas."
+    },
+    {
+      "name":"Usuarios",
+      "description":"Gestión administrativa de usuarios (Requiere rol ADMIN)"
+    },
+    {
+      "name":"Reservas",
+      "description":"Operaciones para la gestion de reservas"
+    }
+  ],
+  "paths":{
+    "/usuarios/{id}":{
+      "put":{
+        "tags":[
+          "Usuarios"
+        ],
+        "summary":"Actualizar un usuario",
+        "description":"Modifica los datos de un usuario existente. Si se envía contraseña, esta se vuelve a cifrar.",
+        "operationId":"actualizarUsuario",
+        "parameters":[
+          {
+            "name":"id",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"integer",
+              "format":"int64"
+            }
+          }
+        ],
+        "requestBody":{
+          "content":{
+            "application/json":{
+              "schema":{
+                "$ref":"#/components/schemas/Usuario"
+              }
+            }
+          },
+          "required":true
+        },
+        "responses":{
+          "404":{
+            "description":"Usuario no encontrado",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          },
+          "200":{
+            "description":"Usuario actualizado correctamente",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      },
+      "delete":{
+        "tags":[
+          "Usuarios"
+        ],
+        "summary":"Eliminar un usuario",
+        "description":"Borra permanentemente un usuario por su ID.",
+        "operationId":"eliminarUsuario",
+        "parameters":[
+          {
+            "name":"id",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"integer",
+              "format":"int64"
+            }
+          }
+        ],
+        "responses":{
+          "204":{
+            "description":"Usuario eliminado correctamente",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          },
+          "404":{
+            "description":"ID de usuario no encontrado",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    },
+    "/turnos":{
+      "get":{
+        "tags":[
+          "Turnos"
+        ],
+        "summary":"Listar turnos",
+        "description":"Obtiene todos los bloques horarios disponibles",
+        "operationId":"listarTurnos",
+        "responses":{
+          "200":{
+            "description":"OK",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"array",
+                  "items":{
+                    "$ref":"#/components/schemas/Turno"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put":{
+        "tags":[
+          "Turnos"
+        ],
+        "summary":"Actualizar turno por Id",
+        "description":"Modifica las horas o el nombre de un turno existente. Requiere rol ADMIN",
+        "operationId":"actualizarTurnoPorId",
+        "parameters":[
+
+        ],
+        "requestBody":{
+          "content":{
+            "application/json":{
+              "schema":{
+                "$ref":"#/components/schemas/Turno"
+              }
+            }
+          },
+          "required":true
+        },
+        "responses":{
+          "404":{
+            "description":"Turno no encontrado",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          },
+          "200":{
+            "description":"Turno actualizado correctamente",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      },
+      "post":{
+        "tags":[
+          "Turnos"
+        ],
+        "summary":"Crear nuevo turno",
+        "description":"Añade una nueva franja horaria. Requiere rol ADMIN.",
+        "operationId":"crearTurno",
+        "requestBody":{
+          "content":{
+            "application/json":{
+              "schema":{
+                "$ref":"#/components/schemas/Turno"
+              }
+            }
+          },
+          "required":true
+        },
+        "responses":{
+          "400":{
+            "description":"El turno ya existe",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Turno"
+                }
+              }
+            }
+          },
+          "201":{
+            "description":"Turno creado con éxito",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Turno"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    },
+    "/turnos/nombre/{nombreActual}":{
+      "put":{
+        "tags":[
+          "Turnos"
+        ],
+        "summary":"Actualizar por nombre",
+        "operationId":"actualizarTurnoPorNombre",
+        "parameters":[
+          {
+            "name":"nombreActual",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"string"
+            }
+          }
+        ],
+        "requestBody":{
+          "content":{
+            "application/json":{
+              "schema":{
+                "$ref":"#/components/schemas/Turno"
+              }
+            }
+          },
+          "required":true
+        },
+        "responses":{
+          "200":{
+            "description":"OK",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    },
+    "/mesas/{id}":{
+      "get":{
+        "tags":[
+          "Mesas"
+        ],
+        "summary":"Obtener mesa por ID",
+        "description":"Busca una mesa usando su ID de base de datos.",
+        "operationId":"obtenerPorId",
+        "parameters":[
+          {
+            "name":"id",
+            "in":"path",
+            "description":"ID técnico de la mesa",
+            "required":true,
+            "schema":{
+              "type":"integer",
+              "format":"int64"
+            },
+            "example":1
+          }
+        ],
+        "responses":{
+          "404":{
+            "description":"No existe mesa con ese ID",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Mesa"
+                }
+              }
+            }
+          },
+          "200":{
+            "description":"Mesa encontrada",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Mesa"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put":{
+        "tags":[
+          "Mesas"
+        ],
+        "summary":"Actualizar mesa por id",
+        "description":"Modifica los datos de una mesa existente buscandola por id",
+        "operationId":"actualizarPorId",
+        "parameters":[
+          {
+            "name":"id",
+            "in":"path",
+            "description":"ID de la mesa",
+            "required":true,
+            "schema":{
+              "type":"integer",
+              "format":"int64"
+            }
+          }
+        ],
+        "requestBody":{
+          "content":{
+            "application/json":{
+              "schema":{
+                "$ref":"#/components/schemas/Mesa"
+              }
+            }
+          },
+          "required":true
+        },
+        "responses":{
+          "200":{
+            "description":"OK",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Mesa"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      },
+      "delete":{
+        "tags":[
+          "Mesas"
+        ],
+        "summary":"Eliminar mesa por campo id",
+        "description":"Borra una mesa por id si no tiene reservas asociadas. Requiere ADMIN.",
+        "operationId":"eliminarPorId_1",
+        "parameters":[
+          {
+            "name":"id",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"integer",
+              "format":"int64"
+            }
+          }
+        ],
+        "responses":{
+          "404":{
+            "description":"Mesa no encontrada",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          },
+          "204":{
+            "description":"Mesa eliminada correctamente",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          },
+          "400":{
+            "description":"No se puede eliminar: existen reservas asociadas",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    },
+    "/mesas/numero/{numeroActual}":{
+      "put":{
+        "tags":[
+          "Mesas"
+        ],
+        "summary":"Actualizar por campo número",
+        "operationId":"actualizarPorNumero",
+        "parameters":[
+          {
+            "name":"numeroActual",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"integer",
+              "format":"int32"
+            }
+          }
+        ],
+        "requestBody":{
+          "content":{
+            "application/json":{
+              "schema":{
+                "$ref":"#/components/schemas/Mesa"
+              }
+            }
+          },
+          "required":true
+        },
+        "responses":{
+          "200":{
+            "description":"OK",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Mesa"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    },
+    "/juegos/{id}":{
+      "put":{
+        "tags":[
+          "Juegos"
+        ],
+        "summary":"Actualizar un juego",
+        "description":"Modifica los datos de un juego existente. Requiere rol ADMIN.",
+        "operationId":"actualizarJuegoPorId",
+        "parameters":[
+          {
+            "name":"id",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"integer",
+              "format":"int64"
+            }
+          }
+        ],
+        "requestBody":{
+          "content":{
+            "application/json":{
+              "schema":{
+                "$ref":"#/components/schemas/Juego"
+              }
+            }
+          },
+          "required":true
+        },
+        "responses":{
+          "404":{
+            "description":"Juego no encontrado",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          },
+          "200":{
+            "description":"Juego actualizado con éxito",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      },
+      "delete":{
+        "tags":[
+          "Juegos"
+        ],
+        "summary":"Eliminar un juego por su Id",
+        "description":"Borra permanentemente un juego de la base de datos. Requiere rol ADMIN. No permitido si tiene reservas",
+        "operationId":"eliminarJuegoPorId",
+        "parameters":[
+          {
+            "name":"id",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"integer",
+              "format":"int64"
+            }
+          }
+        ],
+        "responses":{
+          "400":{
+            "description":"Error: ek juego tiene reservas activas.",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          },
+          "404":{
+            "description":"Juego no encontrado",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          },
+          "204":{
+            "description":"Juego eliminado",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    },
+    "/categorias/{nombreActual}":{
+      "put":{
+        "tags":[
+          "Categorías"
+        ],
+        "summary":"Actualizar por nombre",
+        "operationId":"actualizarPorNombre",
+        "parameters":[
+          {
+            "name":"nombreActual",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"string"
+            }
+          }
+        ],
+        "requestBody":{
+          "content":{
+            "application/json":{
+              "schema":{
+                "$ref":"#/components/schemas/Categoria"
+              }
+            }
+          },
+          "required":true
+        },
+        "responses":{
+          "200":{
+            "description":"OK",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    },
+    "/categorias/{id}":{
+      "get":{
+        "tags":[
+          "Categorías"
+        ],
+        "summary":"Obtener por ID",
+        "description":"Busca una categoría mediante su identificador único de base de datos.",
+        "operationId":"obtenerPorId_1",
+        "parameters":[
+          {
+            "name":"id",
+            "in":"path",
+            "description":"ID técnico de la categoría",
+            "required":true,
+            "schema":{
+              "type":"integer",
+              "format":"int64"
+            },
+            "example":1
+          }
+        ],
+        "responses":{
+          "200":{
+            "description":"Categoría encontrada",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Categoria"
+                }
+              }
+            }
+          },
+          "404":{
+            "description":"No existe ninguna categoría con ese ID",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Categoria"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put":{
+        "tags":[
+          "Categorías"
+        ],
+        "summary":"Actualizar categoría buscando por id",
+        "description":"Modifica los datos de una categoría existente por su ID. Requiere rol ADMIN.",
+        "operationId":"actualizarPorId_1",
+        "parameters":[
+          {
+            "name":"id",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"integer",
+              "format":"int64"
+            }
+          }
+        ],
+        "requestBody":{
+          "content":{
+            "application/json":{
+              "schema":{
+                "$ref":"#/components/schemas/Categoria"
+              }
+            }
+          },
+          "required":true
+        },
+        "responses":{
+          "403":{
+            "description":"Token invalido o no tienes suficientes permisos",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          },
+          "200":{
+            "description":"Categoría actualizada",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          },
+          "404":{
+            "description":"Categoría no encontrada",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    },
+    "/usuarios":{
+      "get":{
+        "tags":[
+          "Usuarios"
+        ],
+        "summary":"Listar todos los usuarios",
+        "description":"Obtiene una lista de todos los usuarios registrados. Solo accesible por administradores.",
+        "operationId":"listarTodos",
+        "responses":{
+          "403":{
+            "description":"Acceso denegado (No eres ADMIN)",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"array",
+                  "items":{
+                    "$ref":"#/components/schemas/Usuario"
+                  }
+                }
+              }
+            }
+          },
+          "200":{
+            "description":"Lista obtenida correctamente",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"array",
+                  "items":{
+                    "$ref":"#/components/schemas/Usuario"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      },
+      "post":{
+        "tags":[
+          "Usuarios"
+        ],
+        "summary":"Crear un nuevo usuario",
+        "description":"Registra un usuario manualmente. Se encarga de cifrar la contraseña antes de guardar.",
+        "operationId":"crearUsuario",
+        "requestBody":{
+          "content":{
+            "application/json":{
+              "schema":{
+                "$ref":"#/components/schemas/Usuario"
+              }
+            }
+          },
+          "required":true
+        },
+        "responses":{
+          "400":{
+            "description":"El nombre de usuario ya existe",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          },
+          "201":{
+            "description":"Usuario creado con éxito",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    },
+    "/reservas":{
+      "get":{
+        "tags":[
+          "Reservas"
+        ],
+        "summary":"Listar todas (ADMIN)",
+        "description":"Devuelve todas las reservas del sistema.",
+        "operationId":"listarTodas",
+        "responses":{
+          "200":{
+            "description":"OK",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"array",
+                  "items":{
+                    "$ref":"#/components/schemas/Reserva"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      },
+      "post":{
+        "tags":[
+          "Reservas"
+        ],
+        "summary":"Crear reserva",
+        "description":"Registra una nueva reserva",
+        "operationId":"crear",
+        "requestBody":{
+          "description":"Datos de la reserva a crear",
+          "content":{
+            "application/json":{
+              "schema":{
+                "$ref":"#/components/schemas/Reserva"
+              },
+              "examples":{
+                " Petición de reserva estándar de un Administrador":{
+                  "summary":"Ejemplo funcional para ADMIN",
+                  "description":" Petición de reserva estándar de un Administrador",
+                  "value":{
+                    "fecha":"2026-04-25",
+                    "usuario":{
+                      "nombre":"admin_test"
+                    },
+                    "mesa":{
+                      "id":4
+                    },
+                    "turno":{
+                      "id":1
+                    },
+                    "juego":{
+                      "nombre":"Catan"
+                    }
+                  }
+                },
+                "Petición de reserva estándar de un usuario":{
+                  "summary":"Ejemplo funcional para USER",
+                  "description":"Petición de reserva estándar de un usuario",
+                  "value":{
+                    "fecha":"2026-04-25",
+                    "mesa":{
+                      "id":4
+                    },
+                    "turno":{
+                      "id":1
+                    },
+                    "juego":{
+                      "nombre":"Catan"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required":true
+        },
+        "responses":{
+          "201":{
+            "description":"Reserva confirmada con exito",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          },
+          "400":{
+            "description":"Error de validacion",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    },
+    "/mesas":{
+      "get":{
+        "tags":[
+          "Mesas"
+        ],
+        "summary":"Listar todas las mesas",
+        "operationId":"listarTodas_1",
+        "responses":{
+          "200":{
+            "description":"OK",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"array",
+                  "items":{
+                    "$ref":"#/components/schemas/Mesa"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post":{
+        "tags":[
+          "Mesas"
+        ],
+        "summary":"Crear mesa",
+        "description":"Anyade una nueva mesa al local",
+        "operationId":"guardarMesa",
+        "requestBody":{
+          "content":{
+            "application/json":{
+              "schema":{
+                "$ref":"#/components/schemas/Mesa"
+              }
+            }
+          },
+          "required":true
+        },
+        "responses":{
+          "201":{
+            "description":"Mesa creada correctamente",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Mesa"
+                }
+              }
+            }
+          },
+          "400":{
+            "description":"Datos de categoría inválidos o inexistentes",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Mesa"
+                }
+              }
+            }
+          },
+          "403":{
+            "description":"Acceso denegado",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Mesa"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    },
+    "/juegos":{
+      "get":{
+        "tags":[
+          "Juegos"
+        ],
+        "summary":"Listar todos los juegos",
+        "description":"Retorna una lista con todos los juegos de la base de datos sin filtros.",
+        "operationId":"listarTodos_1",
+        "responses":{
+          "200":{
+            "description":"Lista de juegos recuperada con éxito",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"array",
+                  "items":{
+                    "$ref":"#/components/schemas/Juego"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post":{
+        "tags":[
+          "Juegos"
+        ],
+        "summary":"Crear juego (con auto-creación de categoría)",
+        "operationId":"crearJuego",
+        "requestBody":{
+          "content":{
+            "application/json":{
+              "schema":{
+                "$ref":"#/components/schemas/Juego"
+              }
+            }
+          },
+          "required":true
+        },
+        "responses":{
+          "201":{
+            "description":"Juego creado con éxito",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Juego"
+                }
+              }
+            }
+          },
+          "400":{
+            "description":"Datos del juego inválidos",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Juego"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    },
+    "/juegos/{id}/subir-imagen":{
+      "post":{
+        "tags":[
+          "Juegos"
+        ],
+        "summary":"Subir imagen de juego",
+        "description":"Sube un archivo de imagen, lo guarda en el servidor y lo asocia al juego indicado.",
+        "operationId":"subirImagen",
+        "parameters":[
+          {
+            "name":"id",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"integer",
+              "format":"int64"
+            }
+          }
+        ],
+        "requestBody":{
+          "content":{
+            "multipart/form-data":{
+              "schema":{
+                "required":[
+                  "archivo"
+                ],
+                "type":"object",
+                "properties":{
+                  "archivo":{
+                    "type":"string",
+                    "format":"binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses":{
+          "200":{
+            "description":"Sube un archivo de imagen y lo asocia al juego. Acceso libre",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Juego"
+                }
+              }
+            }
+          },
+          "404":{
+            "description":"El juego no existe",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Juego"
+                }
+              }
+            }
+          },
+          "500":{
+            "description":"Error interno del servidor al guardar el archivo",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Juego"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/categorias":{
+      "get":{
+        "tags":[
+          "Categorías"
+        ],
+        "summary":"Listar todas las categorías",
+        "description":"Retorna el listado completo de categorías existentes.",
+        "operationId":"listarCategorias",
+        "responses":{
+          "200":{
+            "description":"Lista de categorías obtenida con éxito",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"array",
+                  "items":{
+                    "$ref":"#/components/schemas/Categoria"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post":{
+        "tags":[
+          "Categorías"
+        ],
+        "summary":"Crear una categoría",
+        "description":"Añade una nueva categoría al catálogo. Requiere rol ADMIN.",
+        "operationId":"guardarCategoria",
+        "requestBody":{
+          "content":{
+            "application/json":{
+              "schema":{
+                "$ref":"#/components/schemas/Categoria"
+              }
+            }
+          },
+          "required":true
+        },
+        "responses":{
+          "403":{
+            "description":"No tienes permisos para realizar esta accion",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Categoria"
+                }
+              }
+            }
+          },
+          "201":{
+            "description":"Categoría creada correctamente",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Categoria"
+                }
+              }
+            }
+          },
+          "400":{
+            "description":"Error en los datos enviados o nombre duplicado",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Categoria"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    },
+    "/auth/register":{
+      "post":{
+        "tags":[
+          "Autenticación"
+        ],
+        "summary":"Registrar un nuevo usuario",
+        "description":"Crea un nuevo usuario en el sistema con el rol 'USER' por defecto.",
+        "operationId":"registrar",
+        "requestBody":{
+          "content":{
+            "application/json":{
+              "schema":{
+                "$ref":"#/components/schemas/Usuario"
+              }
+            }
+          },
+          "required":true
+        },
+        "responses":{
+          "201":{
+            "description":"Usuario creado con éxito",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          },
+          "400":{
+            "description":"El nombre de usuario ya existe en el sistema",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout":{
+      "post":{
+        "tags":[
+          "Autenticación"
+        ],
+        "summary":"Cerrar sesión",
+        "description":"Notifica al sistema el cierre de sesión. Al ser JWT (Stateless), el cliente debe borrar el token localmente.",
+        "operationId":"logout",
+        "responses":{
+          "200":{
+            "description":"Confirmación de cierre de sesión",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login":{
+      "post":{
+        "tags":[
+          "Autenticación"
+        ],
+        "summary":"Iniciar sesión",
+        "description":"Verifica las credenciales y devuelve un token JWT junto con los datos del usuario.",
+        "operationId":"login",
+        "requestBody":{
+          "description":"Credenciales de acceso",
+          "content":{
+            "application/json":{
+              "schema":{
+                "$ref":"#/components/schemas/LoginRequest"
+              },
+              "examples":{
+                "Ejemplo de Login admin":{
+                  "summary":"Credenciales estándar de admin",
+                  "description":"Ejemplo de Login admin",
+                  "value":{
+                    "nombre":"admin_test",
+                    "password":"admin123"
+                  }
+                },
+                "Ejemplo de Login user":{
+                  "summary":"Credenciales estándar de user",
+                  "description":"Ejemplo de Login user",
+                  "value":{
+                    "nombre":"user_test",
+                    "password":"user123"
+                  }
+                }
+              }
+            }
+          },
+          "required":true
+        },
+        "responses":{
+          "200":{
+            "description":"Login exitoso",
+            "content":{
+              "application/json":{
+                "schema":{
+                  "$ref":"#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401":{
+            "description":"Nombre de usuario o contraseña incorrectos"
+          }
+        }
+      }
+    },
+    "/turnos/{id}":{
+      "get":{
+        "tags":[
+          "Turnos"
+        ],
+        "summary":"Obtener turno por ID",
+        "operationId":"obtenerTurnoPorId",
+        "parameters":[
+          {
+            "name":"id",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"integer",
+              "format":"int64"
+            }
+          }
+        ],
+        "responses":{
+          "200":{
+            "description":"OK",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Turno"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete":{
+        "tags":[
+          "Turnos"
+        ],
+        "summary":"Eliminar por ID",
+        "operationId":"eliminarPorId",
+        "parameters":[
+          {
+            "name":"id",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"integer",
+              "format":"int64"
+            }
+          }
+        ],
+        "responses":{
+          "204":{
+            "description":"Turno eliminado",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          },
+          "400":{
+            "description":"Error: El turno tiene reservas activas",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    },
+    "/turnos/nombre/{nombre}":{
+      "get":{
+        "tags":[
+          "Turnos"
+        ],
+        "summary":"Obtener un turno por su nombre",
+        "operationId":"obtenerTurnoPorNombre",
+        "parameters":[
+          {
+            "name":"nombre",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"string"
+            }
+          }
+        ],
+        "responses":{
+          "404":{
+            "description":"No existe un turno con ese nombre",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Turno"
+                }
+              }
+            }
+          },
+          "200":{
+            "description":"Turno encontrado",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Turno"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reservas/ocupacion":{
+      "get":{
+        "tags":[
+          "Reservas"
+        ],
+        "summary":"Obtener mapa de ocupacion diario",
+        "description":"Devuelve el estado detallado(LIBRE/OCUPADA) de todas las mesas y juegos para una fecha.",
+        "operationId":"verOcupacion",
+        "parameters":[
+          {
+            "name":"fecha",
+            "in":"query",
+            "required":true,
+            "schema":{
+              "type":"string",
+              "format":"date"
+            }
+          }
+        ],
+        "responses":{
+          "200":{
+            "description":"OK",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/OcupacionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reservas/mis-reservas":{
+      "get":{
+        "tags":[
+          "Reservas"
+        ],
+        "summary":"Mis reservas",
+        "description":"Devuelve el historial de reservas del usuario logeado",
+        "operationId":"listarMisReservas",
+        "responses":{
+          "200":{
+            "description":"OK",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"array",
+                  "items":{
+                    "$ref":"#/components/schemas/Reserva"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    },
+    "/mesas/operativas":{
+      "get":{
+        "tags":[
+          "Mesas"
+        ],
+        "summary":"Listar mesas operativas",
+        "description":"Retorna solo las mesas que pueden ser reservadas actualmente",
+        "operationId":"listarOperativas",
+        "responses":{
+          "200":{
+            "description":"OK",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"array",
+                  "items":{
+                    "$ref":"#/components/schemas/Mesa"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mesas/numero/{numero}":{
+      "get":{
+        "tags":[
+          "Mesas"
+        ],
+        "summary":"Obtener mesa por número",
+        "description":"Busca una mesa usando su número asignado en el local.",
+        "operationId":"obtenerPorNumero",
+        "parameters":[
+          {
+            "name":"numero",
+            "in":"path",
+            "description":"Número físico de la mesa",
+            "required":true,
+            "schema":{
+              "type":"integer",
+              "format":"int32"
+            },
+            "example":10
+          }
+        ],
+        "responses":{
+          "404":{
+            "description":"No existe mesa con ese número",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Mesa"
+                }
+              }
+            }
+          },
+          "200":{
+            "description":"Mesa encontrada",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Mesa"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete":{
+        "tags":[
+          "Mesas"
+        ],
+        "summary":"Eliminar por campo número",
+        "operationId":"eliminarPorNumero",
+        "parameters":[
+          {
+            "name":"numero",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"integer",
+              "format":"int32"
+            }
+          }
+        ],
+        "responses":{
+          "200":{
+            "description":"OK",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    },
+    "/mesas/libres":{
+      "get":{
+        "tags":[
+          "Mesas"
+        ],
+        "summary":"Listar mesas libres",
+        "description":"Retorna las mesas operativas que NO tienen reserva en la fecha y turno indicados.",
+        "operationId":"listarMesasLibres",
+        "parameters":[
+          {
+            "name":"fecha",
+            "in":"query",
+            "description":"Fecha de la consulta",
+            "required":true,
+            "schema":{
+              "type":"string",
+              "format":"date"
+            },
+            "example":"2026-04-10"
+          },
+          {
+            "name":"turnoId",
+            "in":"query",
+            "description":"ID del turno",
+            "required":true,
+            "schema":{
+              "type":"integer",
+              "format":"int64"
+            }
+          }
+        ],
+        "responses":{
+          "200":{
+            "description":"Lista de mesas libres obtenida",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"array",
+                  "items":{
+                    "$ref":"#/components/schemas/Mesa"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/juegos/nombre/{nombre}":{
+      "get":{
+        "tags":[
+          "Juegos"
+        ],
+        "summary":"Buscar copias por campo nombre",
+        "description":"Devuelve todas las instancias de los juegos con el mismo nombre",
+        "operationId":"obtenerCopiasPorNombre",
+        "parameters":[
+          {
+            "name":"nombre",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"string"
+            }
+          }
+        ],
+        "responses":{
+          "200":{
+            "description":"Copias encontradas",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"array",
+                  "items":{
+                    "$ref":"#/components/schemas/Juego"
+                  }
+                }
+              }
+            }
+          },
+          "404":{
+            "description":"No hay juegos con ese nombre",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"array",
+                  "items":{
+                    "$ref":"#/components/schemas/Juego"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/juegos/imagen/{nombreArchivo}":{
+      "get":{
+        "tags":[
+          "Juegos"
+        ],
+        "summary":"Ver imagen",
+        "description":"Retorna el recurso binario de la imagen (o miniatura) para ser mostrada en el navegador.",
+        "operationId":"verImagen",
+        "parameters":[
+          {
+            "name":"nombreArchivo",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"string"
+            }
+          }
+        ],
+        "responses":{
+          "200":{
+            "description":"OK",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"string",
+                  "format":"binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/juegos/disponibles":{
+      "get":{
+        "tags":[
+          "Juegos"
+        ],
+        "summary":"Listar juegos disponibles",
+        "description":"Filtra y retorna solo aquellos juegos cuya disponibilidad es verdadera.",
+        "operationId":"listarDisponibles",
+        "responses":{
+          "200":{
+            "description":"OK",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"array",
+                  "items":{
+                    "$ref":"#/components/schemas/Juego"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/juegos/categoria/{nombre}":{
+      "get":{
+        "tags":[
+          "Juegos"
+        ],
+        "summary":"Filtrar por nombre de categoría",
+        "description":"Obtiene los juegos que pertenecen a una categoría específica buscada por nombre.",
+        "operationId":"listarPorCategoria",
+        "parameters":[
+          {
+            "name":"nombre",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"string"
+            }
+          }
+        ],
+        "responses":{
+          "404":{
+            "description":"La categoria no existe.",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"array",
+                  "items":{
+                    "$ref":"#/components/schemas/Juego"
+                  }
+                }
+              }
+            }
+          },
+          "200":{
+            "description":"Lista recuperada con exito.",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"array",
+                  "items":{
+                    "$ref":"#/components/schemas/Juego"
+                  }
+                }
+              }
+            }
+          },
+          "204":{
+            "description":"No hay juegos para esta categoria.",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"array",
+                  "items":{
+                    "$ref":"#/components/schemas/Juego"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/categorias/{nombre}":{
+      "get":{
+        "tags":[
+          "Categorías"
+        ],
+        "summary":"Buscar por nombre",
+        "description":"Recuperatodos los datos de una categoria buscando por el nombre",
+        "operationId":"obtenerPorNombre",
+        "parameters":[
+          {
+            "name":"nombre",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"string"
+            }
+          }
+        ],
+        "responses":{
+          "404":{
+            "description":"No existe una categoria con ese nombre",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Categoria"
+                }
+              }
+            }
+          },
+          "200":{
+            "description":"Categoria encontrada",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "$ref":"#/components/schemas/Categoria"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/turnos/vaciar":{
+      "delete":{
+        "tags":[
+          "Turnos"
+        ],
+        "summary":"Vaciar todos los turnos",
+        "description":"Elimina todos los turnos solo si la tabla de reservas está vacía.",
+        "operationId":"vaciarTodos",
+        "responses":{
+          "200":{
+            "description":"OK",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    },
+    "/categorias/nombre/{nombre}":{
+      "delete":{
+        "tags":[
+          "Categorías"
+        ],
+        "summary":"Eliminar por nombre",
+        "description":"Borra la categoría por su nombre. Los juegos asociados se mantienen (NULL). Requiere ADMIN.",
+        "operationId":"borrarPorNombre",
+        "parameters":[
+          {
+            "name":"nombre",
+            "in":"path",
+            "required":true,
+            "schema":{
+              "type":"string"
+            }
+          }
+        ],
+        "responses":{
+          "200":{
+            "description":"OK",
+            "content":{
+              "*/*":{
+                "schema":{
+                  "type":"object"
+                }
+              }
+            }
+          }
+        },
+        "security":[
+          {
+            "BearerAuth":[
+
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "components":{
+    "schemas":{
+      "Usuario":{
+        "type":"object",
+        "properties":{
+          "id":{
+            "type":"integer",
+            "description":"ID único autogenerado",
+            "format":"int64"
+          },
+          "nombre":{
+            "type":"string",
+            "description":"Nombre de acceso único",
+            "example":"pablo_admin"
+          },
+          "password":{
+            "type":"string",
+            "description":"Contraseña (se guarda cifrada en BD)",
+            "example":"123456"
+          },
+          "rol":{
+            "type":"string",
+            "description":"Roles permitidos en el sistema",
+            "example":"ADMIN",
+            "enum":[
+              "ADMIN",
+              "USER"
+            ]
+          }
+        },
+        "description":"Modelo que representa a un usuario del sistema"
+      },
+      "LocalTime":{
+        "type":"object",
+        "properties":{
+          "hour":{
+            "type":"integer",
+            "format":"int32"
+          },
+          "minute":{
+            "type":"integer",
+            "format":"int32"
+          },
+          "second":{
+            "type":"integer",
+            "format":"int32"
+          },
+          "nano":{
+            "type":"integer",
+            "format":"int32"
+          }
+        },
+        "description":"Hora del fin del bloque",
+        "example":"11:30"
+      },
+      "Turno":{
+        "type":"object",
+        "properties":{
+          "id":{
+            "type":"integer",
+            "description":"ID del turno",
+            "format":"int64"
+          },
+          "nombre":{
+            "type":"string",
+            "description":"Nombre identificativo del turno",
+            "example":"MAÑANA 1"
+          },
+          "horaInicio":{
+            "$ref":"#/components/schemas/LocalTime"
+          },
+          "horaFin":{
+            "$ref":"#/components/schemas/LocalTime"
+          }
+        },
+        "description":"Define las franjas horarias disponibles para reservar"
+      },
+      "Mesa":{
+        "type":"object",
+        "properties":{
+          "id":{
+            "type":"integer",
+            "description":"ID unico de la mesa",
+            "format":"int64",
+            "readOnly":true
+          },
+          "numero":{
+            "type":"integer",
+            "description":"Numero identificador de la mesa (1,2,3,4",
+            "format":"int32",
+            "example":4
+          },
+          "capacidad":{
+            "type":"integer",
+            "description":"Capacidsad maxima de jugadores en esta mesa",
+            "format":"int32",
+            "example":4
+          },
+          "operativa":{
+            "type":"boolean",
+            "description":"Estado de la mesa para recibir reservas",
+            "example":true
+          }
+        },
+        "description":"Modelo que represenra una mesa reservable del local"
+      },
+      "Categoria":{
+        "type":"object",
+        "properties":{
+          "id":{
+            "type":"integer",
+            "description":"ID de la categoria",
+            "format":"int64",
+            "readOnly":true
+          },
+          "nombre":{
+            "type":"string",
+            "description":"Nombre de la categoria",
+            "example":"Estrategia"
+          }
+        },
+        "description":"Modelo que representa una categoria de juegos"
+      },
+      "Juego":{
+        "type":"object",
+        "properties":{
+          "id":{
+            "type":"integer",
+            "description":"Identificador único",
+            "format":"int64",
+            "readOnly":true
+          },
+          "nombre":{
+            "type":"string",
+            "description":"Nombre del juego",
+            "example":"Catan"
+          },
+          "numJugadores":{
+            "type":"string",
+            "description":"Numero recomendado de jugadores",
+            "example":"2-4"
+          },
+          "categoria":{
+            "$ref":"#/components/schemas/Categoria"
+          },
+          "disponible":{
+            "type":"boolean",
+            "description":"Estado de la disponibilidad para su reserva",
+            "example":true
+          },
+          "descripcion":{
+            "type":"string",
+            "description":"Breve comentario sobre el juego",
+            "example":"Juego de estrategia ambientado en la Edad Media"
+          },
+          "observaciones":{
+            "type":"string",
+            "description":"Notas sobre el estado físico de esta copia",
+            "example":"Caja algo gastada, cartas con fundas."
+          },
+          "rutaImagen":{
+            "type":"string",
+            "description":"Nombre del archivo de imagen en el servidor",
+            "readOnly":true
+          }
+        },
+        "description":"Modelo que representa un juego del catálogo"
+      },
+      "Reserva":{
+        "type":"object",
+        "properties":{
+          "id":{
+            "type":"integer",
+            "description":"ID unico de la reserva",
+            "format":"int64",
+            "readOnly":true
+          },
+          "fecha":{
+            "type":"string",
+            "description":"Fecha de la reserva YYYY-MM-DD",
+            "format":"date",
+            "example":"2026-02-25"
+          },
+          "usuario":{
+            "$ref":"#/components/schemas/Usuario"
+          },
+          "mesa":{
+            "$ref":"#/components/schemas/Mesa"
+          },
+          "turno":{
+            "$ref":"#/components/schemas/Turno"
+          },
+          "juego":{
+            "$ref":"#/components/schemas/Juego"
+          },
+          "estado":{
+            "type":"string",
+            "description":"Estados posibles de una reserva",
+            "example":"CONFIRMADO",
+            "enum":[
+              "PENDIENTE",
+              "CONFIRMADA",
+              "CANCELADA",
+              "COMPLETADA"
+            ]
+          }
+        },
+        "description":"Representacion de una reserva confirmada"
+      },
+      "LoginRequest":{
+        "type":"object",
+        "properties":{
+          "nombre":{
+            "type":"string",
+            "description":"Nombre de usuario",
+            "example":"admin_test"
+          },
+          "password":{
+            "type":"string",
+            "description":"Contraseña del usuario",
+            "example":"1234"
+          }
+        },
+        "description":"Credenciales para el inicio de sesión"
+      },
+      "LoginResponse":{
+        "type":"object",
+        "properties":{
+          "token":{
+            "type":"string"
+          },
+          "nombre":{
+            "type":"string"
+          },
+          "rol":{
+            "type":"string"
+          }
+        }
+      },
+      "JuegoEstadoDTO":{
+        "type":"object",
+        "properties":{
+          "nombre":{
+            "type":"string",
+            "description":"Nombre oficial del juego",
+            "example":"Catan"
+          },
+          "copiasTotales":{
+            "type":"integer",
+            "description":"Numero total de copias fisicas en el café",
+            "format":"int64",
+            "example":3
+          },
+          "copiasLibres":{
+            "type":"integer",
+            "description":"Numero de copias que no han sido reservadas aun",
+            "format":"int64",
+            "example":1
+          }
+        },
+        "description":"Disponibilidad de un título del catalogo"
+      },
+      "MesaEstadoDTO":{
+        "type":"object",
+        "properties":{
+          "numero":{
+            "type":"integer",
+            "description":"Numero identificativo de la mesa",
+            "format":"int32",
+            "example":4
+          },
+          "estado":{
+            "type":"string",
+            "description":"Estado actual de la mesa",
+            "example":"OCUPADA",
+            "enum":[
+              "LIBRE",
+              "OCUPADA"
+            ]
+          },
+          "ocupadaPor":{
+            "type":"string",
+            "description":"Nombre del usuarioque tiene la reserva (null si esta libre",
+            "example":"user_test"
+          }
+        },
+        "description":"Detalle del estado de una mesa"
+      },
+      "OcupacionResponse":{
+        "type":"object",
+        "properties":{
+          "fecha":{
+            "type":"string",
+            "description":"Fecha consultada",
+            "format":"date",
+            "example":"2026-04-25"
+          },
+          "turnos":{
+            "type":"array",
+            "description":"Listado de estados por cada turno del dia",
+            "items":{
+              "$ref":"#/components/schemas/TurnoEstadoDTO"
+            }
+          }
+        },
+        "description":"Respuesta con el mapa de ocuàcion diario"
+      },
+      "TurnoEstadoDTO":{
+        "type":"object",
+        "properties":{
+          "id":{
+            "type":"integer",
+            "description":"ID del turno",
+            "format":"int64",
+            "example":1
+          },
+          "nombre":{
+            "type":"string",
+            "description":"Nombre del turno",
+            "example":"MAÑANA 1"
+          },
+          "mesas":{
+            "type":"array",
+            "description":"Lista detallada del estado de todas las mesas",
+            "items":{
+              "$ref":"#/components/schemas/MesaEstadoDTO"
+            }
+          },
+          "juegos":{
+            "type":"array",
+            "description":"Lista de disponibilidad de todos los juegos",
+            "items":{
+              "$ref":"#/components/schemas/JuegoEstadoDTO"
+            }
+          }
+        },
+        "description":"Estado de mesas y jugos en un turno especifico"
+      }
+    },
+    "securitySchemes":{
+      "BearerAuth":{
+        "type":"http",
+        "scheme":"bearer",
+        "bearerFormat":"JWT"
+      }
+    }
+  }
+}
