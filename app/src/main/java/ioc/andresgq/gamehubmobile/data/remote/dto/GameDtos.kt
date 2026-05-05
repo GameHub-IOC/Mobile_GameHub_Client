@@ -23,3 +23,19 @@ data class GameDto(
  * (si el backend devuelve una lista JSON directa).
  */
 typealias GameListResponseDto = List<GameDto>
+
+/**
+ * Cuerpo de petición para crear o actualizar un juego.
+ *
+ * No incluye [id] (asignado por el servidor) ni [rutaImagen]
+ * (se gestiona de forma separada con el endpoint de subida de imagen).
+ */
+data class GameRequestDto(
+    val nombre: String,
+    val numJugadores: String,
+    val categoria: CategoriaDto,
+    val disponible: Boolean,
+    val descripcion: String? = null,
+    val observaciones: String? = null
+)
+

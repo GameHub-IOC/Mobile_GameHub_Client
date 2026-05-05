@@ -86,6 +86,7 @@ import ioc.andresgq.gamehubmobile.ui.model.reservation.ReservationTableOption
 import ioc.andresgq.gamehubmobile.ui.model.reservation.ReservationTurnOption
 import ioc.andresgq.gamehubmobile.ui.model.reservation.ReservationWizardState
 import ioc.andresgq.gamehubmobile.ui.model.reservation.ReservationWizardStep
+import ioc.andresgq.gamehubmobile.ui.screens.admin.GameManagementViewModel
 import ioc.andresgq.gamehubmobile.ui.screens.admin.ManagementScreen
 import ioc.andresgq.gamehubmobile.ui.screens.admin.UsersScreen
 import ioc.andresgq.gamehubmobile.ui.screens.gamecatalog.GameListScreen
@@ -139,6 +140,7 @@ fun MainShellRoute(
     dashboardViewModel: DashboardViewModel,
     reservationFlowViewModel: ReservationFlowViewModel,
     reservationListViewModel: ReservationListViewModel,
+    gameManagementViewModel: GameManagementViewModel? = null,
     onGameClick: (Long) -> Unit,
     onLogoutSuccess: () -> Unit,
     onCloseApp: () -> Unit,
@@ -413,7 +415,13 @@ fun MainShellRoute(
             }
 
             composable(MainTabRoutes.MANAGEMENT) {
-                ManagementScreen()
+                val vm = gameManagementViewModel
+                if (vm != null) {
+                    ManagementScreen(viewModel = vm)
+                } else {
+                    // Fallback: no debería ocurrir en producción
+                    ManagementScreen(viewModel = viewModel())
+                }
             }
 
             composable(MainTabRoutes.USERS) {

@@ -20,9 +20,11 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import ioc.andresgq.gamehubmobile.data.model.UserSession
 import ioc.andresgq.gamehubmobile.data.repository.AuthRepository
+import ioc.andresgq.gamehubmobile.data.repository.CategoriaRepository
 import ioc.andresgq.gamehubmobile.data.repository.GameRepository
 import ioc.andresgq.gamehubmobile.data.repository.ReservationRepository
 import ioc.andresgq.gamehubmobile.domain.reservation.UserRole
+import ioc.andresgq.gamehubmobile.ui.screens.admin.GameManagementViewModelFactory
 import ioc.andresgq.gamehubmobile.ui.screens.gamedetail.GameDetailRoute
 import ioc.andresgq.gamehubmobile.ui.screens.gamedetail.GameDetailViewModel
 import ioc.andresgq.gamehubmobile.ui.screens.gamedetail.GameDetailViewModelFactory
@@ -65,6 +67,7 @@ fun AppNavHost(
     authRepository: AuthRepository,
     gameRepository: GameRepository,
     reservationRepository: ReservationRepository,
+    categoriaRepository: CategoriaRepository,
     onCloseApp: () -> Unit
 ) {
     val navController = rememberNavController()
@@ -227,6 +230,12 @@ fun AppNavHost(
                 val reservationListViewModel: ReservationListViewModel = viewModel(
                     factory = ReservationListViewModelFactory(reservationRepository)
                 )
+                val gameManagementViewModel: ioc.andresgq.gamehubmobile.ui.screens.admin.GameManagementViewModel = viewModel(
+                    factory = GameManagementViewModelFactory(
+                        gameRepository = gameRepository,
+                        categoriaRepository = categoriaRepository
+                    )
+                )
                 MainShellRoute(
                     role = UserRole.ADMIN,
                     catalogViewModel = catalogViewModel,
@@ -234,6 +243,7 @@ fun AppNavHost(
                     dashboardViewModel = dashboardViewModel,
                     reservationFlowViewModel = reservationFlowViewModel,
                     reservationListViewModel = reservationListViewModel,
+                    gameManagementViewModel = gameManagementViewModel,
                     onGameClick = { gameId ->
                         navController.navigate(AppDestinations.gameDetailRoute(gameId))
                     },

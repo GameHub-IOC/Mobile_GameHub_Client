@@ -64,10 +64,26 @@ interface GameDao {
     suspend fun upsertAll(games: List<GameEntity>)
 
     /**
+     * Inserta o reemplaza un único juego en la caché local.
+     *
+     * @param game entidad a persistir.
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertOne(game: GameEntity)
+
+    /**
      * Elimina todos los juegos almacenados en caché.
      *
      * Útil para forzar una recarga completa desde la red.
      */
     @Query("DELETE FROM games")
     suspend fun clearAll()
+
+    /**
+     * Elimina un juego concreto de la caché por su id.
+     *
+     * @param id identificador único del juego a eliminar.
+     */
+    @Query("DELETE FROM games WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }

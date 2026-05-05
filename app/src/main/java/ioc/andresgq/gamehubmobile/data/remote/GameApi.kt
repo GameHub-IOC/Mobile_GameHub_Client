@@ -2,11 +2,15 @@ package ioc.andresgq.gamehubmobile.data.remote
 
 import ioc.andresgq.gamehubmobile.data.remote.dto.GameDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.GameListResponseDto
+import ioc.andresgq.gamehubmobile.data.remote.dto.GameRequestDto
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
+import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 
@@ -62,4 +66,32 @@ interface GameApi {
         @Path("id") id: Long,
         @Part archivo: MultipartBody.Part
     ): GameDto
+
+    /**
+     * Crea un nuevo juego en el catálogo. Requiere rol ADMIN.
+     *
+     * @param game datos del juego a crear (sin id ni rutaImagen).
+     */
+    @POST("juegos")
+    suspend fun createGame(@Body game: GameRequestDto): GameDto
+
+    /**
+     * Actualiza los datos de un juego existente. Requiere rol ADMIN.
+     *
+     * @param id  id del juego a actualizar.
+     * @param game nuevos datos del juego.
+     */
+    @PUT("juegos/{id}")
+    suspend fun updateGame(
+        @Path("id") id: Long,
+        @Body game: GameRequestDto
+    ): GameDto
+
+    /**
+     * Elimina un juego del catálogo. Requiere rol ADMIN.
+     *
+     * @param id id del juego a eliminar.
+     */
+    @DELETE("juegos/{id}")
+    suspend fun deleteGame(@Path("id") id: Long)
 }

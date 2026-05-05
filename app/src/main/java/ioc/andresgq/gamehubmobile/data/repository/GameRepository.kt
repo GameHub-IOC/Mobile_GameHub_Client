@@ -3,6 +3,7 @@ package ioc.andresgq.gamehubmobile.data.repository
 import ioc.andresgq.gamehubmobile.data.local.GameLocalDataSource
 import ioc.andresgq.gamehubmobile.data.remote.GameRemoteDataSource
 import ioc.andresgq.gamehubmobile.data.remote.dto.GameDto
+import ioc.andresgq.gamehubmobile.data.remote.dto.GameRequestDto
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -113,12 +114,6 @@ class GameRepository(
      *
      * En caso de error de red o del servidor, intenta servir datos desde [cacheFallback].
      * Solo propaga el error si la caché también está vacía.
-     *
-     * @param request       llamada suspendida a la API remota.
-     * @param cacheFallback consulta local como respaldo ante fallos de red.
-     * @param cacheUpdate   acción para persistir los datos remotos en Room.
-     *
-     * @return resultado de la operación.
      */
     private suspend fun executeWithCache(
         request: suspend () -> List<GameDto>,
@@ -153,4 +148,77 @@ class GameRepository(
             Result.failure(Exception("Error inesperado al obtener los juegos: ${e.message}"))
         }
     }
+
+    // ──────────────────────────────────────────────────
+    //  Operaciones de escritura (requieren rol ADMIN)
+    // ──────────────────────────────────────────────────
+
+    /**
+     * Crea un nuevo juego en el catálogo.
+     *
+     * @param request datos del nuevo juego.
+     * @return el [GameDto] creado por el servidor.
+     */
+    suspend fun createGame(request: GameRequestDto): Result<GameDto> =
+        withContext(ioDispatcher) {
+            try {
+                val created = gameRemoteDataSource.createGame(request)
+                gameLocalDataSource.upsertGame(created)
+                Result.success(created)
+            } catch (e: HttpException) {
+                Result.failure(Exception("Error del servidor (${e.code()})"))
+            } catch (_: IOException) {
+                Result.failure(Exception("No se pudo conectar con el servidor"))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Result.failure(Exception("Error inesperado al crear el juego: ${e.message}"))
+            }
+        }
+
+    /**
+     * Actualiza los datos de un juego existente.
+     *
+     * @param id      id del juego a modificar.
+     * @param request nuevos datos.
+     * @return el [GameDto] actualizado devuelto por el servidor.
+     */
+    suspend fun updateGame(id: Long, request: GameRequestDto): Result<GameDto> =
+        withContext(ioDispatcher) {
+            try {
+                val updated = gameRemoteDataSource.updateGame(id, request)
+                gameLocalDataSource.upsertGame(updated)
+                Result.success(updated)
+            } catch (e: HttpException) {
+                Result.failure(Exception("Error del servidor (${e.code()})"))
+            } catch (_: IOException) {
+                Result.failure(Exception("No se pudo conectar con el servidor"))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Result.failure(Exception("Error inesperado al actualizar el juego: ${e.message}"))
+            }
+        }
+
+    /**
+     * Elimina un juego del catálogo y lo borra de la caché local.
+     *
+     * @param id id del juego a eliminar.
+     */
+    suspend fun deleteGame(id: Long): Result<Unit> =
+        withContext(ioDispatcher) {
+            try {
+                gameRemoteDataSource.deleteGame(id)
+                gameLocalDataSource.deleteGame(id)
+                Result.success(Unit)
+            } catch (e: HttpException) {
+                Result.failure(Exception("Error del servidor (${e.code()})"))
+            } catch (_: IOException) {
+                Result.failure(Exception("No se pudo conectar con el servidor"))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Result.failure(Exception("Error inesperado al eliminar el juego: ${e.message}"))
+            }
+        }
 }

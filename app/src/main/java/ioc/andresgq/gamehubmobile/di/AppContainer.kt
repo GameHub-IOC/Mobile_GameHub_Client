@@ -7,11 +7,13 @@ import ioc.andresgq.gamehubmobile.data.local.AppDatabase
 import ioc.andresgq.gamehubmobile.data.local.GameLocalDataSource
 import ioc.andresgq.gamehubmobile.data.local.TokenManager
 import ioc.andresgq.gamehubmobile.data.remote.AuthApi
+import ioc.andresgq.gamehubmobile.data.remote.CategoriaApi
 import ioc.andresgq.gamehubmobile.data.remote.GameApi
 import ioc.andresgq.gamehubmobile.data.remote.GameRemoteDataSource
 import ioc.andresgq.gamehubmobile.data.remote.ReservationApi
 import ioc.andresgq.gamehubmobile.data.remote.ReservationRemoteDataSource
 import ioc.andresgq.gamehubmobile.data.repository.AuthRepository
+import ioc.andresgq.gamehubmobile.data.repository.CategoriaRepository
 import ioc.andresgq.gamehubmobile.data.repository.GameRepository
 import ioc.andresgq.gamehubmobile.data.repository.ReservationRepository
 import kotlinx.coroutines.runBlocking
@@ -39,6 +41,11 @@ interface AppContainer {
      * Repositorio encargado del acceso al catálogo de juegos.
      */
     val gameRepository: GameRepository
+
+    /**
+     * Repositorio para la gestión de categorías. Necesario en la pantalla de gestión admin.
+     */
+    val categoriaRepository: CategoriaRepository
 
     /**
      * Repositorio encargado de crear reservas.
@@ -166,6 +173,11 @@ class DefaultAppContainer(context: Context) : AppContainer {
     private val gameApi = retrofit.create(GameApi::class.java)
 
     /**
+     * Implementación de [CategoriaApi] generada por Retrofit.
+     */
+    private val categoriaApi = retrofit.create(CategoriaApi::class.java)
+
+    /**
      * Implementación de [ReservationApi] generada por Retrofit.
      */
     private val reservationApi = retrofit.create(ReservationApi::class.java)
@@ -214,6 +226,13 @@ class DefaultAppContainer(context: Context) : AppContainer {
     override val gameRepository: GameRepository = GameRepository(
         gameRemoteDataSource = gameRemoteDataSource,
         gameLocalDataSource = gameLocalDataSource
+    )
+
+    /**
+     * Repositorio de categorías expuesto por el contenedor.
+     */
+    override val categoriaRepository: CategoriaRepository = CategoriaRepository(
+        categoriaApi = categoriaApi
     )
 
     /**

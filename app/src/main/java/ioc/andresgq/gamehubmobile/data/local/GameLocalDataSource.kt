@@ -52,5 +52,23 @@ class GameLocalDataSource(
     suspend fun upsertGames(games: List<GameDto>) {
         gameDao.upsertAll(games.map { it.toEntity() })
     }
+
+    /**
+     * Inserta o reemplaza un único juego en la caché local.
+     *
+     * @param game [GameDto] a persistir.
+     */
+    suspend fun upsertGame(game: GameDto) {
+        gameDao.upsertOne(game.toEntity())
+    }
+
+    /**
+     * Elimina un juego concreto de la caché por su id.
+     *
+     * @param id identificador único del juego.
+     */
+    suspend fun deleteGame(id: Long) {
+        gameDao.deleteById(id)
+    }
 }
 
