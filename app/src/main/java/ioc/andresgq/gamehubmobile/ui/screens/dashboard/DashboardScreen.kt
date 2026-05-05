@@ -47,6 +47,7 @@ import ioc.andresgq.gamehubmobile.ui.screens.reservations.ReservationListItemUi
  * @param uiState           estado agregado producido por [DashboardViewModel].
  * @param onReserveNow      navega al wizard de reserva.
  * @param onViewReservations navega al listado de reservas.
+ * @param onGoToManagement  navega a la sección de gestión (solo disponible para ADMIN).
  * @param onRefresh         fuerza recarga de todos los datos.
  */
 @Composable
@@ -54,6 +55,7 @@ fun DashboardScreen(
     uiState: DashboardUiState,
     onReserveNow: () -> Unit,
     onViewReservations: () -> Unit,
+    onGoToManagement: () -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -96,9 +98,12 @@ fun DashboardScreen(
         // ─── 4. KPI strip ────────────────────────────────────────────────────
         item {
             KpiStrip(
+                role = uiState.role,
                 tablesCount = uiState.operationalTablesCount,
                 turnsCount = uiState.availableTurnsCount,
                 gamesCount = uiState.availableGamesCount,
+                todayCount = uiState.todayReservationsCount,
+                pendingCount = uiState.pendingReservationsCount,
                 isLoading = uiState.isLoading
             )
         }
@@ -106,6 +111,7 @@ fun DashboardScreen(
         // ─── 5. Próxima reserva ──────────────────────────────────────────────
         item {
             NextReservationSection(
+                role = uiState.role,
                 reservation = uiState.nextReservation,
                 isLoading = uiState.isLoading,
                 onReserveNow = onReserveNow,
@@ -117,6 +123,7 @@ fun DashboardScreen(
         if (uiState.recentReservations.isNotEmpty() || uiState.isLoading) {
             item {
                 RecentReservationsSection(
+                    role = uiState.role,
                     reservations = uiState.recentReservations,
                     isLoading = uiState.isLoading,
                     onViewAll = onViewReservations
@@ -129,7 +136,8 @@ fun DashboardScreen(
             QuickActionsSection(
                 role = uiState.role,
                 onReserveNow = onReserveNow,
-                onViewReservations = onViewReservations
+                onViewReservations = onViewReservations,
+                onGoToManagement = onGoToManagement
             )
         }
     }
@@ -293,14 +301,17 @@ private fun AlertBanner(message: String) {
 
 @Composable
 private fun KpiStrip(
+    role: UserRole,
     tablesCount: Int,
     turnsCount: Int,
     gamesCount: Int,
+    todayCount: Int,
+    pendingCount: Int,
     isLoading: Boolean
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Disponibilidad",
+            text = if (role == UserRole.ADMIN) "Operación hoy" else "Disponibilidad",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold
         )
@@ -308,24 +319,46 @@ private fun KpiStrip(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            KpiCard(
-                emoji = "🪑",
-                label = "Mesas",
-                value = if (isLoading) "…" else tablesCount.toString(),
-                modifier = Modifier.weight(1f)
-            )
-            KpiCard(
-                emoji = "⏰",
-                label = "Turnos",
-                value = if (isLoading) "…" else turnsCount.toString(),
-                modifier = Modifier.weight(1f)
-            )
-            KpiCard(
-                emoji = "🎲",
-                label = "Juegos",
-                value = if (isLoading) "…" else gamesCount.toString(),
-                modifier = Modifier.weight(1f)
-            )
+            if (role == UserRole.ADMIN) {
+                KpiCard(
+                    emoji = "📋",
+                    label = "Reservas hoy",
+                    value = if (isLoading) "…" else todayCount.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                KpiCard(
+                    emoji = "⏳",
+                    label = "Pendientes",
+                    value = if (isLoading) "…" else pendingCount.toString(),
+                    highlight = pendingCount > 0,
+                    modifier = Modifier.weight(1f)
+                )
+                KpiCard(
+                    emoji = "🪑",
+                    label = "Mesas op.",
+                    value = if (isLoading) "…" else tablesCount.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+            } else {
+                KpiCard(
+                    emoji = "🪑",
+                    label = "Mesas",
+                    value = if (isLoading) "…" else tablesCount.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                KpiCard(
+                    emoji = "⏰",
+                    label = "Turnos",
+                    value = if (isLoading) "…" else turnsCount.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                KpiCard(
+                    emoji = "🎲",
+                    label = "Juegos",
+                    value = if (isLoading) "…" else gamesCount.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
@@ -335,9 +368,17 @@ private fun KpiCard(
     emoji: String,
     label: String,
     value: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    highlight: Boolean = false
 ) {
-    ElevatedCard(modifier = modifier) {
+    ElevatedCard(
+        modifier = modifier,
+        colors = if (highlight)
+            CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer
+            )
+        else CardDefaults.elevatedCardColors()
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -349,12 +390,15 @@ private fun KpiCard(
             Text(
                 text = value,
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = if (highlight) MaterialTheme.colorScheme.onErrorContainer
+                        else MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (highlight) MaterialTheme.colorScheme.onErrorContainer
+                        else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -366,14 +410,16 @@ private fun KpiCard(
 
 @Composable
 private fun NextReservationSection(
+    role: UserRole,
     reservation: ReservationListItemUi?,
     isLoading: Boolean,
     onReserveNow: () -> Unit,
     onViewReservations: () -> Unit
 ) {
+    val isAdmin = role == UserRole.ADMIN
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Tu próxima reserva",
+            text = if (isAdmin) "Próxima reserva activa" else "Tu próxima reserva",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold
         )
@@ -406,20 +452,25 @@ private fun NextReservationSection(
                     ) {
                         Text("📋", style = MaterialTheme.typography.displaySmall)
                         Text(
-                            text = "Sin reservas próximas",
+                            text = if (isAdmin) "Sin reservas activas próximas"
+                                   else "Sin reservas próximas",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Elige fecha, turno y mesa para reservar tu próxima partida",
+                            text = if (isAdmin)
+                                       "No hay reservas pendientes o confirmadas en los próximos días"
+                                   else "Elige fecha, turno y mesa para reservar tu próxima partida",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Button(
-                            onClick = onReserveNow,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("🎲 Reservar ahora")
+                        if (!isAdmin) {
+                            Button(
+                                onClick = onReserveNow,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("🎲 Reservar ahora")
+                            }
                         }
                     }
                 }
@@ -447,6 +498,15 @@ private fun NextReservationSection(
 
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
+                        // Para ADMIN: mostrar el usuario propietario de la reserva
+                        if (isAdmin && reservation.usuarioNombre.isNotBlank()) {
+                            ReservationDetailRow(
+                                icon = "👤",
+                                label = "Usuario",
+                                value = reservation.usuarioNombre
+                            )
+                        }
+
                         ReservationDetailRow(
                             icon = "⏰",
                             label = "Turno",
@@ -472,7 +532,7 @@ private fun NextReservationSection(
                                 .fillMaxWidth()
                                 .padding(top = 4.dp)
                         ) {
-                            Text("Ver mis reservas")
+                            Text(if (isAdmin) "Ver todas las reservas" else "Ver mis reservas")
                         }
                     }
                 }
@@ -549,10 +609,12 @@ private fun statusColorPair(estado: String): Pair<Color, Color> =
 
 @Composable
 private fun RecentReservationsSection(
+    role: UserRole,
     reservations: List<ReservationListItemUi>,
     isLoading: Boolean,
     onViewAll: () -> Unit
 ) {
+    val isAdmin = role == UserRole.ADMIN
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -560,12 +622,15 @@ private fun RecentReservationsSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Últimas reservas",
+                text = if (isAdmin) "Actividad reciente del local" else "Últimas reservas",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
             )
             TextButton(onClick = onViewAll) {
-                Text("Ver historial completo", style = MaterialTheme.typography.labelMedium)
+                Text(
+                    if (isAdmin) "Ver historial global" else "Ver historial completo",
+                    style = MaterialTheme.typography.labelMedium
+                )
             }
         }
 
@@ -587,7 +652,9 @@ private fun RecentReservationsSection(
 
                 reservations.isEmpty() -> {
                     Text(
-                        text = "Aún no tienes reservas registradas",
+                        text = if (isAdmin)
+                                   "Sin reservas recientes en el sistema"
+                               else "Aún no tienes reservas registradas",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(16.dp)
@@ -597,7 +664,7 @@ private fun RecentReservationsSection(
                 else -> {
                     Column {
                         reservations.forEachIndexed { index, item ->
-                            ReservationTimelineItem(item = item)
+                            ReservationTimelineItem(item = item, showUser = isAdmin)
                             if (index < reservations.lastIndex) {
                                 HorizontalDivider(
                                     modifier = Modifier.padding(horizontal = 16.dp),
@@ -613,7 +680,7 @@ private fun RecentReservationsSection(
 }
 
 @Composable
-private fun ReservationTimelineItem(item: ReservationListItemUi) {
+private fun ReservationTimelineItem(item: ReservationListItemUi, showUser: Boolean = false) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -637,6 +704,13 @@ private fun ReservationTimelineItem(item: ReservationListItemUi) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (showUser && item.usuarioNombre.isNotBlank()) {
+                Text(
+                    text = "👤 ${item.usuarioNombre}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         ReservationStatusChip(estado = item.estado)
     }
@@ -650,7 +724,8 @@ private fun ReservationTimelineItem(item: ReservationListItemUi) {
 private fun QuickActionsSection(
     role: UserRole,
     onReserveNow: () -> Unit,
-    onViewReservations: () -> Unit
+    onViewReservations: () -> Unit,
+    onGoToManagement: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -658,26 +733,42 @@ private fun QuickActionsSection(
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (role == UserRole.USER) {
+        if (role == UserRole.ADMIN) {
+            // Fila 1: Ver reservas + Gestión
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onViewReservations,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("📋 Reservas")
+                }
+                Button(
+                    onClick = onGoToManagement,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("⚙️ Gestión")
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Button(
                     onClick = onReserveNow,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("🎲 Reservar")
                 }
-            }
-            OutlinedButton(
-                onClick = onViewReservations,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    if (role == UserRole.ADMIN) "📋 Todas las reservas"
-                    else "📋 Mis reservas"
-                )
+                OutlinedButton(
+                    onClick = onViewReservations,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("📋 Mis reservas")
+                }
             }
         }
     }

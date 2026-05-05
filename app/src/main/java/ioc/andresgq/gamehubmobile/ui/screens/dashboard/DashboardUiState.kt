@@ -15,7 +15,8 @@ import ioc.andresgq.gamehubmobile.ui.screens.reservations.ReservationListItemUi
  * @param lastSyncLabel     texto descriptivo del último refresco ("Actualizado ahora", etc.).
  * @param nextReservation   primera reserva futura no cancelada/completada, o null.
  * @param recentReservations últimas 5 reservas ordenadas por fecha descendente.
- * @param todayReservationsCount número de reservas del usuario para hoy.
+ * @param todayReservationsCount número de reservas para hoy (propias para USER, globales para ADMIN).
+ * @param pendingReservationsCount número de reservas en estado PENDIENTE (útil para ADMIN).
  * @param operationalTablesCount número de mesas operativas en el sistema.
  * @param availableTurnsCount número de turnos configurados.
  * @param availableGamesCount número de juegos disponibles en catálogo.
@@ -36,8 +37,9 @@ data class DashboardUiState(
     // Historial reciente (hasta 5 elementos, más reciente primero)
     val recentReservations: List<ReservationListItemUi> = emptyList(),
 
-    // KPIs instantáneos de disponibilidad
+    // KPIs instantáneos de disponibilidad / operación
     val todayReservationsCount: Int = 0,
+    val pendingReservationsCount: Int = 0,
     val operationalTablesCount: Int = 0,
     val availableTurnsCount: Int = 0,
     val availableGamesCount: Int = 0,

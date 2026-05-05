@@ -103,18 +103,21 @@ class DashboardViewModel(
                 val nextReservation = computeNextReservation(reservations, today)
                 val recentReservations = reservations.take(5)
                 val todayCount = reservations.count { it.fecha == today }
+                val pendingCount = reservations.count { it.estado.uppercase() == "PENDIENTE" }
 
                 val alertMessage = buildAlertMessage(
                     today = today,
                     nextReservation = nextReservation,
                     availableTurnsCount = turns.size,
-                    todayCount = todayCount
+                    todayCount = todayCount,
+                    pendingCount = pendingCount
                 )
 
                 _uiState.value = _uiState.value.copy(
                     nextReservation = nextReservation,
                     recentReservations = recentReservations,
                     todayReservationsCount = todayCount,
+                    pendingReservationsCount = pendingCount,
                     availableTurnsCount = turns.size,
                     operationalTablesCount = tables.size,
                     availableGamesCount = games.size,
@@ -147,21 +150,36 @@ class DashboardViewModel(
 
     /**
      * Construye un mensaje de alerta accionable basado en el estado global.
+     * Para ADMIN prioriza información operativa (pendientes, actividad de hoy).
+     * Para USER muestra información personal de sus próximas reservas.
      * Retorna null si no hay nada relevante que comunicar.
      */
     private fun buildAlertMessage(
         today: String,
         nextReservation: ReservationListItemUi?,
         availableTurnsCount: Int,
-        todayCount: Int
-    ): String? = when {
-        nextReservation?.fecha == today ->
-            "Tu próxima reserva es hoy en turno ${nextReservation.turnoNombre} · Mesa ${nextReservation.mesaNumero ?: "—"}"
-        nextReservation == null && availableTurnsCount == 0 ->
-            "No hay turnos disponibles para hoy"
-        nextReservation == null && todayCount == 0 ->
-            "No tienes reservas próximas. ¡Reserva ahora tu mesa!"
-        else -> null
+        todayCount: Int,
+        pendingCount: Int
+    ): String? {
+        return if (role == UserRole.ADMIN) {
+            when {
+                pendingCount > 0 ->
+                    "🔴 Hay $pendingCount reserva${if (pendingCount != 1) "s" else ""} pendiente${if (pendingCount != 1) "s" else ""} de revisión"
+                todayCount > 0 ->
+                    "📅 Hoy hay $todayCount reserva${if (todayCount != 1) "s" else ""} activa${if (todayCount != 1) "s" else ""} en el local"
+                else -> null
+            }
+        } else {
+            when {
+                nextReservation?.fecha == today ->
+                    "Tu próxima reserva es hoy en turno ${nextReservation.turnoNombre} · Mesa ${nextReservation.mesaNumero ?: "—"}"
+                nextReservation == null && availableTurnsCount == 0 ->
+                    "No hay turnos disponibles para hoy"
+                nextReservation == null && todayCount == 0 ->
+                    "No tienes reservas próximas. ¡Reserva ahora tu mesa!"
+                else -> null
+            }
+        }
     }
 
     companion object {

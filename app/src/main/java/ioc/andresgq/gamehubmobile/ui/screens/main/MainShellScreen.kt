@@ -312,6 +312,21 @@ fun MainShellRoute(
                                 restoreState = false
                             }
                         }
+                    },
+                    onGoToManagement = {
+                        val targetRoute =
+                            tabs.firstOrNull { it.section == MainSection.MANAGEMENT }?.route
+                        if (targetRoute != null) {
+                            mainNavigationViewModel.selectSection(MainSection.MANAGEMENT)
+                            tabNavController.navigate(targetRoute) {
+                                popUpTo(MainTabRoutes.HOME) {
+                                    inclusive = false
+                                    saveState = false
+                                }
+                                launchSingleTop = true
+                                restoreState = false
+                            }
+                        }
                     }
                 )
             }
@@ -455,7 +470,8 @@ private fun DashboardTabScreen(
     profileState: UiState<ProfileInfo>,
     dashboardViewModel: DashboardViewModel,
     onReserveNow: () -> Unit,
-    onViewReservations: () -> Unit
+    onViewReservations: () -> Unit,
+    onGoToManagement: () -> Unit
 ) {
     val uiState by dashboardViewModel.uiState.collectAsState()
     val username = (profileState as? UiState.Success)?.data?.username.orEmpty()
@@ -474,6 +490,7 @@ private fun DashboardTabScreen(
         uiState = uiState,
         onReserveNow = onReserveNow,
         onViewReservations = onViewReservations,
+        onGoToManagement = onGoToManagement,
         onRefresh = dashboardViewModel::refresh
     )
 }
