@@ -2,14 +2,14 @@ package ioc.andresgq.gamehubmobile.data.local
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import ioc.andresgq.gamehubmobile.data.remote.dto.CategoriaDto
+import ioc.andresgq.gamehubmobile.data.remote.dto.CategoryDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.GameDto
 
 /**
  * Entidad de Room que representa un juego en la caché local.
  *
  * Almacena los datos relevantes de [GameDto], aplanando el objeto anidado
- * [CategoriaDto] en dos columnas simples ([categoriaId] y [categoriaNombre])
+ * [CategoryDto] en dos columnas simples ([categoriaId] y [categoriaNombre])
  * para cumplir con las restricciones de Room sobre tipos primitivos.
  *
  * @property id identificador único del juego, usado como clave primaria.
@@ -56,7 +56,7 @@ fun GameEntity.toDto(): GameDto = GameDto(
     id = id,
     nombre = nombre,
     numJugadores = numJugadores,
-    categoria = CategoriaDto(id = categoriaId, nombre = categoriaNombre),
+    categoria = CategoryDto(id = categoriaId, nombre = categoriaNombre),
     disponible = disponible,
     descripcion = descripcion,
     observaciones = observaciones,

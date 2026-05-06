@@ -59,8 +59,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import ioc.andresgq.gamehubmobile.data.remote.dto.CategoriaDto
+import ioc.andresgq.gamehubmobile.data.remote.dto.CategoryDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.GameRequestDto
+import ioc.andresgq.gamehubmobile.data.remote.dto.ReservationMesaOperativaDto
 import ioc.andresgq.gamehubmobile.ui.screens.gamecatalog.GameItemUi
 import ioc.andresgq.gamehubmobile.ui.state.UiState
 
@@ -75,13 +76,14 @@ fun ManagementScreen(
 ) {
     val gamesState by viewModel.gamesState.collectAsState()
     val categoriasState by viewModel.categoriasState.collectAsState()
+    val mesasState by viewModel.mesasState.collectAsState()
     val operationState by viewModel.operationState.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
     // ── Estado de tabs ──────────────────────────────────────────────────────
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
-    val tabs = listOf("Juegos", "Categorías")
+    val tabs = listOf("Juegos", "Categorías", "Mesas")
 
     // ── Estado del CRUD de juegos ───────────────────────────────────────────
     var editingGame by remember { mutableStateOf<GameItemUi?>(null) }
@@ -89,9 +91,14 @@ fun ManagementScreen(
     var deletingGameId by remember { mutableStateOf<Long?>(null) }
 
     // ── Estado del CRUD de categorías ──────────────────────────────────────
-    var editingCategoria by remember { mutableStateOf<CategoriaDto?>(null) }
+    var editingCategoria by remember { mutableStateOf<CategoryDto?>(null) }
     var showCategoriaFormDialog by remember { mutableStateOf(false) }
-    var deletingCategoria by remember { mutableStateOf<CategoriaDto?>(null) }
+    var deletingCategoria by remember { mutableStateOf<CategoryDto?>(null) }
+
+    // ── Estado del CRUD de mesas ────────────────────────────────────────────
+    var editingMesa by remember { mutableStateOf<ReservationMesaOperativaDto?>(null) }
+    var showMesaFormDialog by remember { mutableStateOf(false) }
+    var deletingMesa by remember { mutableStateOf<ReservationMesaOperativaDto?>(null) }
 
     LaunchedEffect(operationState) {
         when (operationState) {
@@ -100,6 +107,7 @@ fun ManagementScreen(
                 viewModel.consumeOperationState()
                 showGameFormDialog = false
                 showCategoriaFormDialog = false
+                showMesaFormDialog = false
             }
             is UiState.Error -> {
                 snackbarHostState.showSnackbar((operationState as UiState.Error).message)
@@ -114,17 +122,19 @@ fun ManagementScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = {
-                if (selectedTab == 0) {
-                    editingGame = null
-                    showGameFormDialog = true
-                } else {
-                    editingCategoria = null
-                    showCategoriaFormDialog = true
+                when (selectedTab) {
+                    0 -> { editingGame = null; showGameFormDialog = true }
+                    1 -> { editingCategoria = null; showCategoriaFormDialog = true }
+                    2 -> { editingMesa = null; showMesaFormDialog = true }
                 }
             }) {
                 Icon(
                     Icons.Filled.Add,
-                    contentDescription = if (selectedTab == 0) "Añadir juego" else "Añadir categoría"
+                    contentDescription = when (selectedTab) {
+                        0 -> "Añadir juego"
+                        1 -> "Añadir categoría"
+                        else -> "Añadir mesa"
+                    }
                 )
             }
         }
@@ -191,6 +201,31 @@ fun ManagementScreen(
                     },
                     onRetryCategorias = { viewModel.loadCategorias(force = true) }
                 )
+
+                2 -> MesasTab(
+                    mesasState = mesasState,
+                    operationState = operationState,
+                    showFormDialog = showMesaFormDialog,
+                    editingMesa = editingMesa,
+                    deletingMesa = deletingMesa,
+                    onEditMesa = { mesa -> editingMesa = mesa; showMesaFormDialog = true },
+                    onDeleteMesa = { mesa -> deletingMesa = mesa },
+                    onToggleOperativa = { mesa ->
+                        viewModel.updateMesa(mesa.id, mesa.numero, mesa.capacidad, !mesa.operativa)
+                    },
+                    onDismissForm = { showMesaFormDialog = false },
+                    onSubmitForm = { numero, capacidad ->
+                        val current = editingMesa
+                        if (current == null) viewModel.createMesa(numero, capacidad)
+                        else viewModel.updateMesa(current.id, numero, capacidad, current.operativa)
+                    },
+                    onDismissDelete = { deletingMesa = null },
+                    onConfirmDelete = { mesa ->
+                        viewModel.deleteMesa(mesa.id)
+                        deletingMesa = null
+                    },
+                    onRetryMesas = { viewModel.loadMesas(force = true) }
+                )
             }
         }
     }
@@ -203,7 +238,7 @@ fun ManagementScreen(
 @Composable
 private fun GamesTab(
     gamesState: UiState<List<GameItemUi>>,
-    categoriasState: UiState<List<CategoriaDto>>,
+    categoriasState: UiState<List<CategoryDto>>,
     operationState: UiState<Unit>,
     showFormDialog: Boolean,
     editingGame: GameItemUi?,
@@ -315,17 +350,17 @@ private fun GamesTab(
 
 @Composable
 private fun CategoriasTab(
-    categoriasState: UiState<List<CategoriaDto>>,
+    categoriasState: UiState<List<CategoryDto>>,
     operationState: UiState<Unit>,
     showFormDialog: Boolean,
-    editingCategoria: CategoriaDto?,
-    deletingCategoria: CategoriaDto?,
-    onEditCategoria: (CategoriaDto) -> Unit,
-    onDeleteCategoria: (CategoriaDto) -> Unit,
+    editingCategoria: CategoryDto?,
+    deletingCategoria: CategoryDto?,
+    onEditCategoria: (CategoryDto) -> Unit,
+    onDeleteCategoria: (CategoryDto) -> Unit,
     onDismissForm: () -> Unit,
     onSubmitForm: (String) -> Unit,
     onDismissDelete: () -> Unit,
-    onConfirmDelete: (CategoriaDto) -> Unit,
+    onConfirmDelete: (CategoryDto) -> Unit,
     onRetryCategorias: () -> Unit
 ) {
     Column(
@@ -474,7 +509,7 @@ private fun GameManagementItem(
 
 @Composable
 private fun CategoriaManagementItem(
-    categoria: CategoriaDto,
+    categoria: CategoryDto,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
@@ -516,7 +551,7 @@ private fun CategoriaManagementItem(
 @Composable
 private fun GameFormDialog(
     game: GameItemUi?,
-    categorias: List<CategoriaDto>,
+    categorias: List<CategoryDto>,
     isSaving: Boolean,
     onDismiss: () -> Unit,
     onSubmit: (GameRequestDto) -> Unit
@@ -667,7 +702,7 @@ private fun GameFormDialog(
 
 @Composable
 private fun CategoriaFormDialog(
-    categoria: CategoriaDto?,
+    categoria: CategoryDto?,
     isSaving: Boolean,
     onDismiss: () -> Unit,
     onSubmit: (String) -> Unit
@@ -716,6 +751,289 @@ private fun CategoriaFormDialog(
                     Spacer(Modifier.width(8.dp))
                 }
                 Text(if (categoria == null) "Crear" else "Guardar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isSaving) { Text("Cancelar") }
+        }
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Pestaña de mesas
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun MesasTab(
+    mesasState: UiState<List<ReservationMesaOperativaDto>>,
+    operationState: UiState<Unit>,
+    showFormDialog: Boolean,
+    editingMesa: ReservationMesaOperativaDto?,
+    deletingMesa: ReservationMesaOperativaDto?,
+    onEditMesa: (ReservationMesaOperativaDto) -> Unit,
+    onDeleteMesa: (ReservationMesaOperativaDto) -> Unit,
+    onToggleOperativa: (ReservationMesaOperativaDto) -> Unit,
+    onDismissForm: () -> Unit,
+    onSubmitForm: (numero: Int, capacidad: Int) -> Unit,
+    onDismissDelete: () -> Unit,
+    onConfirmDelete: (ReservationMesaOperativaDto) -> Unit,
+    onRetryMesas: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+    ) {
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "Gestión de mesas",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "Configura capacidad y estado operativo de cada mesa",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(12.dp))
+
+        when (val state = mesasState) {
+            UiState.Idle, UiState.Loading -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+            is UiState.Error -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = state.message,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Button(onClick = onRetryMesas) { Text("Reintentar") }
+                    }
+                }
+            }
+            is UiState.Success -> {
+                val mesas = state.data
+                if (mesas.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            "No hay mesas configuradas. Pulsa + para añadir una.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(mesas, key = { it.id }) { mesa ->
+                            MesaManagementItem(
+                                mesa = mesa,
+                                isSaving = operationState is UiState.Loading,
+                                onEdit = { onEditMesa(mesa) },
+                                onDelete = { onDeleteMesa(mesa) },
+                                onToggleOperativa = { onToggleOperativa(mesa) }
+                            )
+                        }
+                        item { Spacer(Modifier.height(80.dp)) }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showFormDialog) {
+        val isSaving = operationState is UiState.Loading
+        MesaFormDialog(
+            mesa = editingMesa,
+            isSaving = isSaving,
+            onDismiss = onDismissForm,
+            onSubmit = onSubmitForm
+        )
+    }
+
+    deletingMesa?.let { mesa ->
+        AlertDialog(
+            onDismissRequest = onDismissDelete,
+            title = { Text("Eliminar mesa") },
+            text = {
+                Text(
+                    "¿Seguro que quieres eliminar la Mesa ${mesa.numero}? " +
+                        "No podrá eliminarse si tiene reservas asociadas."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { onConfirmDelete(mesa) },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("Eliminar") }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissDelete) { Text("Cancelar") }
+            }
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Item de listado — mesas
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun MesaManagementItem(
+    mesa: ReservationMesaOperativaDto,
+    isSaving: Boolean,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onToggleOperativa: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ElevatedCard(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Indicador de color según estado
+            val estadoColor = if (mesa.operativa)
+                MaterialTheme.colorScheme.primary
+            else
+                MaterialTheme.colorScheme.error
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Mesa ${mesa.numero}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "Capacidad: ${mesa.capacidad} personas",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = if (mesa.operativa) "Operativa" else "Fuera de servicio",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = estadoColor,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            // Switch rápido de estado operativo
+            Switch(
+                checked = mesa.operativa,
+                onCheckedChange = { onToggleOperativa() },
+                enabled = !isSaving,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+            IconButton(onClick = onEdit) {
+                Icon(
+                    Icons.Filled.Edit,
+                    contentDescription = "Editar Mesa ${mesa.numero}",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Filled.Delete,
+                    contentDescription = "Eliminar Mesa ${mesa.numero}",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Diálogo de creación / edición — mesas
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun MesaFormDialog(
+    mesa: ReservationMesaOperativaDto?,
+    isSaving: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: (numero: Int, capacidad: Int) -> Unit
+) {
+    var numeroText by rememberSaveable { mutableStateOf(if (mesa != null) mesa.numero.toString() else "") }
+    var capacidadText by rememberSaveable { mutableStateOf(if (mesa != null) mesa.capacidad.toString() else "") }
+
+    val numeroError = numeroText.isBlank() || numeroText.toIntOrNull() == null || numeroText.toInt() <= 0
+    val capacidadError = capacidadText.isBlank() || capacidadText.toIntOrNull() == null || capacidadText.toInt() <= 0
+
+    AlertDialog(
+        onDismissRequest = { if (!isSaving) onDismiss() },
+        title = { Text(if (mesa == null) "Nueva mesa" else "Editar Mesa ${mesa.numero}") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .imePadding(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = numeroText,
+                    onValueChange = { numeroText = it.filter { c -> c.isDigit() } },
+                    label = { Text("Número de mesa *") },
+                    isError = numeroError,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (numeroError) {
+                    Text(
+                        "Introduce un número de mesa válido (> 0)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                OutlinedTextField(
+                    value = capacidadText,
+                    onValueChange = { capacidadText = it.filter { c -> c.isDigit() } },
+                    label = { Text("Capacidad (personas) *") },
+                    isError = capacidadError,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (capacidadError) {
+                    Text(
+                        "Introduce una capacidad válida (> 0)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                if (mesa != null) {
+                    Text(
+                        text = "Estado operativo: cambia el interruptor directamente en el listado.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val num = numeroText.toIntOrNull() ?: return@Button
+                    val cap = capacidadText.toIntOrNull() ?: return@Button
+                    onSubmit(num, cap)
+                },
+                enabled = !isSaving && !numeroError && !capacidadError
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(if (mesa == null) "Crear" else "Guardar")
             }
         },
         dismissButton = {

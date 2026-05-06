@@ -7,14 +7,16 @@ import ioc.andresgq.gamehubmobile.data.local.AppDatabase
 import ioc.andresgq.gamehubmobile.data.local.GameLocalDataSource
 import ioc.andresgq.gamehubmobile.data.local.TokenManager
 import ioc.andresgq.gamehubmobile.data.remote.AuthApi
-import ioc.andresgq.gamehubmobile.data.remote.CategoriaApi
+import ioc.andresgq.gamehubmobile.data.remote.CategoryApi
 import ioc.andresgq.gamehubmobile.data.remote.GameApi
 import ioc.andresgq.gamehubmobile.data.remote.GameRemoteDataSource
+import ioc.andresgq.gamehubmobile.data.remote.TableApi
 import ioc.andresgq.gamehubmobile.data.remote.ReservationApi
 import ioc.andresgq.gamehubmobile.data.remote.ReservationRemoteDataSource
 import ioc.andresgq.gamehubmobile.data.repository.AuthRepository
-import ioc.andresgq.gamehubmobile.data.repository.CategoriaRepository
+import ioc.andresgq.gamehubmobile.data.repository.CategoryRepository
 import ioc.andresgq.gamehubmobile.data.repository.GameRepository
+import ioc.andresgq.gamehubmobile.data.repository.TableRepository
 import ioc.andresgq.gamehubmobile.data.repository.ReservationRepository
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
@@ -45,7 +47,12 @@ interface AppContainer {
     /**
      * Repositorio para la gestión de categorías. Necesario en la pantalla de gestión admin.
      */
-    val categoriaRepository: CategoriaRepository
+    val categoryRepository: CategoryRepository
+
+    /**
+     * Repositorio para la gestión administrativa de mesas del local.
+     */
+    val tableRepository: TableRepository
 
     /**
      * Repositorio encargado de crear reservas.
@@ -173,9 +180,14 @@ class DefaultAppContainer(context: Context) : AppContainer {
     private val gameApi = retrofit.create(GameApi::class.java)
 
     /**
-     * Implementación de [CategoriaApi] generada por Retrofit.
+     * Implementación de [CategoryApi] generada por Retrofit.
      */
-    private val categoriaApi = retrofit.create(CategoriaApi::class.java)
+    private val categoryApi = retrofit.create(CategoryApi::class.java)
+
+    /**
+     * Implementación de [TableApi] generada por Retrofit.
+     */
+    private val tableApi = retrofit.create(TableApi::class.java)
 
     /**
      * Implementación de [ReservationApi] generada por Retrofit.
@@ -231,8 +243,15 @@ class DefaultAppContainer(context: Context) : AppContainer {
     /**
      * Repositorio de categorías expuesto por el contenedor.
      */
-    override val categoriaRepository: CategoriaRepository = CategoriaRepository(
-        categoriaApi = categoriaApi
+    override val categoryRepository: CategoryRepository = CategoryRepository(
+        categoryApi = categoryApi
+    )
+
+    /**
+     * Repositorio de mesas expuesto por el contenedor.
+     */
+    override val tableRepository: TableRepository = TableRepository(
+        tableApi = tableApi
     )
 
     /**

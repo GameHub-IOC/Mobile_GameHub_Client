@@ -10,7 +10,7 @@ data class GameDto(
     val id: Long,
     val nombre: String,
     val numJugadores: String,
-    val categoria: CategoriaDto,
+    val categoria: CategoryDto,
     val disponible: Boolean,
     val descripcion: String? = null,
     val observaciones: String? = null,
@@ -33,7 +33,7 @@ typealias GameListResponseDto = List<GameDto>
 data class GameRequestDto(
     val nombre: String,
     val numJugadores: String,
-    val categoria: CategoriaDto,
+    val categoria: CategoryDto,
     val disponible: Boolean,
     val descripcion: String? = null,
     val observaciones: String? = null

@@ -20,8 +20,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import ioc.andresgq.gamehubmobile.data.model.UserSession
 import ioc.andresgq.gamehubmobile.data.repository.AuthRepository
-import ioc.andresgq.gamehubmobile.data.repository.CategoriaRepository
+import ioc.andresgq.gamehubmobile.data.repository.CategoryRepository
 import ioc.andresgq.gamehubmobile.data.repository.GameRepository
+import ioc.andresgq.gamehubmobile.data.repository.TableRepository
 import ioc.andresgq.gamehubmobile.data.repository.ReservationRepository
 import ioc.andresgq.gamehubmobile.domain.reservation.UserRole
 import ioc.andresgq.gamehubmobile.ui.screens.admin.GameManagementViewModelFactory
@@ -67,7 +68,8 @@ fun AppNavHost(
     authRepository: AuthRepository,
     gameRepository: GameRepository,
     reservationRepository: ReservationRepository,
-    categoriaRepository: CategoriaRepository,
+    categoryRepository: CategoryRepository,
+    tableRepository: TableRepository,
     onCloseApp: () -> Unit
 ) {
     val navController = rememberNavController()
@@ -233,7 +235,8 @@ fun AppNavHost(
                 val gameManagementViewModel: ioc.andresgq.gamehubmobile.ui.screens.admin.GameManagementViewModel = viewModel(
                     factory = GameManagementViewModelFactory(
                         gameRepository = gameRepository,
-                        categoriaRepository = categoriaRepository
+                        categoryRepository = categoryRepository,
+                        tableRepository = tableRepository
                     )
                 )
                 MainShellRoute(

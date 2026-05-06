@@ -48,7 +48,8 @@ class MainActivity : ComponentActivity() {
                     authRepository = appContainer.authRepository,
                     gameRepository = appContainer.gameRepository,
                     reservationRepository = appContainer.reservationRepository,
-                    categoriaRepository = appContainer.categoriaRepository,
+                    categoryRepository = appContainer.categoryRepository,
+                    tableRepository = appContainer.tableRepository,
                     onCloseApp = { finish() }
                 )
 

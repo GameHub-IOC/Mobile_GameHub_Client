@@ -3,10 +3,12 @@ package ioc.andresgq.gamehubmobile.ui.screens.admin
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import ioc.andresgq.gamehubmobile.data.remote.dto.CategoriaDto
+import ioc.andresgq.gamehubmobile.data.remote.dto.CategoryDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.GameRequestDto
-import ioc.andresgq.gamehubmobile.data.repository.CategoriaRepository
+import ioc.andresgq.gamehubmobile.data.remote.dto.ReservationMesaOperativaDto
+import ioc.andresgq.gamehubmobile.data.repository.CategoryRepository
 import ioc.andresgq.gamehubmobile.data.repository.GameRepository
+import ioc.andresgq.gamehubmobile.data.repository.TableRepository
 import ioc.andresgq.gamehubmobile.ui.screens.gamecatalog.GameItemUi
 import ioc.andresgq.gamehubmobile.ui.state.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,14 +26,18 @@ import kotlinx.coroutines.launch
  */
 class GameManagementViewModel(
     private val gameRepository: GameRepository,
-    private val categoriaRepository: CategoriaRepository
+    private val categoryRepository: CategoryRepository,
+    private val tableRepository: TableRepository
 ) : ViewModel() {
 
     private val _gamesState = MutableStateFlow<UiState<List<GameItemUi>>>(UiState.Idle)
     val gamesState: StateFlow<UiState<List<GameItemUi>>> = _gamesState.asStateFlow()
 
-    private val _categoriasState = MutableStateFlow<UiState<List<CategoriaDto>>>(UiState.Idle)
-    val categoriasState: StateFlow<UiState<List<CategoriaDto>>> = _categoriasState.asStateFlow()
+    private val _categoriasState = MutableStateFlow<UiState<List<CategoryDto>>>(UiState.Idle)
+    val categoriasState: StateFlow<UiState<List<CategoryDto>>> = _categoriasState.asStateFlow()
+
+    private val _mesasState = MutableStateFlow<UiState<List<ReservationMesaOperativaDto>>>(UiState.Idle)
+    val mesasState: StateFlow<UiState<List<ReservationMesaOperativaDto>>> = _mesasState.asStateFlow()
 
     /** Estado de la última operación de escritura (crear / actualizar / eliminar). */
     private val _operationState = MutableStateFlow<UiState<Unit>>(UiState.Idle)
@@ -40,6 +46,7 @@ class GameManagementViewModel(
     init {
         loadGames()
         loadCategorias(force = false)
+        loadMesas(force = false)
     }
 
     /** Carga o recarga la lista de juegos desde el repositorio. */
@@ -72,9 +79,67 @@ class GameManagementViewModel(
         if (!force && (_categoriasState.value is UiState.Loading || _categoriasState.value is UiState.Success)) return
         viewModelScope.launch {
             _categoriasState.value = UiState.Loading
-            _categoriasState.value = categoriaRepository.getCategorias().fold(
+            _categoriasState.value = categoryRepository.getCategorias().fold(
                 onSuccess = { UiState.Success(it) },
                 onFailure = { UiState.Error(it.message ?: "Error al cargar categorías") }
+            )
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  CRUD de mesas
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** Carga o recarga el listado de mesas desde el repositorio. */
+    fun loadMesas(force: Boolean = false) {
+        if (!force && (_mesasState.value is UiState.Loading || _mesasState.value is UiState.Success)) return
+        viewModelScope.launch {
+            _mesasState.value = UiState.Loading
+            _mesasState.value = tableRepository.getMesas().fold(
+                onSuccess = { UiState.Success(it.sortedBy { m -> m.numero }) },
+                onFailure = { UiState.Error(it.message ?: "Error al cargar mesas") }
+            )
+        }
+    }
+
+    /** Crea una nueva mesa. */
+    fun createMesa(numero: Int, capacidad: Int) {
+        viewModelScope.launch {
+            _operationState.value = UiState.Loading
+            _operationState.value = tableRepository.createMesa(numero, capacidad).fold(
+                onSuccess = {
+                    loadMesas(force = true)
+                    UiState.Success(Unit)
+                },
+                onFailure = { UiState.Error(it.message ?: "Error al crear la mesa") }
+            )
+        }
+    }
+
+    /** Actualiza los datos de una mesa existente. */
+    fun updateMesa(id: Long, numero: Int, capacidad: Int, operativa: Boolean) {
+        viewModelScope.launch {
+            _operationState.value = UiState.Loading
+            _operationState.value = tableRepository.updateMesa(id, numero, capacidad, operativa).fold(
+                onSuccess = {
+                    loadMesas(force = true)
+                    UiState.Success(Unit)
+                },
+                onFailure = { UiState.Error(it.message ?: "Error al actualizar la mesa") }
+            )
+        }
+    }
+
+    /** Elimina una mesa por su id. */
+    fun deleteMesa(id: Long) {
+        viewModelScope.launch {
+            _operationState.value = UiState.Loading
+            _operationState.value = tableRepository.deleteMesa(id).fold(
+                onSuccess = {
+                    loadMesas(force = true)
+                    UiState.Success(Unit)
+                },
+                onFailure = { UiState.Error(it.message ?: "Error al eliminar la mesa") }
             )
         }
     }
@@ -87,7 +152,7 @@ class GameManagementViewModel(
     fun createCategoria(nombre: String) {
         viewModelScope.launch {
             _operationState.value = UiState.Loading
-            _operationState.value = categoriaRepository.createCategoria(nombre).fold(
+            _operationState.value = categoryRepository.createCategoria(nombre).fold(
                 onSuccess = {
                     loadCategorias(force = true)
                     UiState.Success(Unit)
@@ -101,7 +166,7 @@ class GameManagementViewModel(
     fun updateCategoria(id: Long, nuevoNombre: String) {
         viewModelScope.launch {
             _operationState.value = UiState.Loading
-            _operationState.value = categoriaRepository.updateCategoria(id, nuevoNombre).fold(
+            _operationState.value = categoryRepository.updateCategoria(id, nuevoNombre).fold(
                 onSuccess = {
                     loadCategorias(force = true)
                     UiState.Success(Unit)
@@ -115,7 +180,7 @@ class GameManagementViewModel(
     fun deleteCategoria(nombre: String) {
         viewModelScope.launch {
             _operationState.value = UiState.Loading
-            _operationState.value = categoriaRepository.deleteCategoria(nombre).fold(
+            _operationState.value = categoryRepository.deleteCategoria(nombre).fold(
                 onSuccess = {
                     loadCategorias(force = true)
                     UiState.Success(Unit)
@@ -190,15 +255,17 @@ class GameManagementViewModel(
  * Factory para crear instancias de [GameManagementViewModel].
  *
  * @param gameRepository       repositorio del catálogo de juegos.
- * @param categoriaRepository  repositorio de categorías.
+ * @param categoryRepository  repositorio de categorías.
+ * @param tableRepository       repositorio de mesas del local.
  */
 class GameManagementViewModelFactory(
     private val gameRepository: GameRepository,
-    private val categoriaRepository: CategoriaRepository
+    private val categoryRepository: CategoryRepository,
+    private val tableRepository: TableRepository
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        GameManagementViewModel(gameRepository, categoriaRepository) as T
+        GameManagementViewModel(gameRepository, categoryRepository, tableRepository) as T
 }
 
