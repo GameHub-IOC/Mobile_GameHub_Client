@@ -5,7 +5,6 @@ import ioc.andresgq.gamehubmobile.data.local.GameEntity
 import ioc.andresgq.gamehubmobile.data.local.GameLocalDataSource
 import ioc.andresgq.gamehubmobile.data.remote.GameApi
 import ioc.andresgq.gamehubmobile.data.remote.GameRemoteDataSource
-import ioc.andresgq.gamehubmobile.data.remote.dto.CategoriaDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.GameDto
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

@@ -24,6 +24,7 @@ import ioc.andresgq.gamehubmobile.data.repository.CategoryRepository
 import ioc.andresgq.gamehubmobile.data.repository.GameRepository
 import ioc.andresgq.gamehubmobile.data.repository.TableRepository
 import ioc.andresgq.gamehubmobile.data.repository.ReservationRepository
+import ioc.andresgq.gamehubmobile.data.repository.TurnRepository
 import ioc.andresgq.gamehubmobile.domain.reservation.UserRole
 import ioc.andresgq.gamehubmobile.ui.screens.admin.GameManagementViewModelFactory
 import ioc.andresgq.gamehubmobile.ui.screens.gamedetail.GameDetailRoute
@@ -70,6 +71,7 @@ fun AppNavHost(
     reservationRepository: ReservationRepository,
     categoryRepository: CategoryRepository,
     tableRepository: TableRepository,
+    turnRepository: TurnRepository,
     onCloseApp: () -> Unit
 ) {
     val navController = rememberNavController()
@@ -236,7 +238,8 @@ fun AppNavHost(
                     factory = GameManagementViewModelFactory(
                         gameRepository = gameRepository,
                         categoryRepository = categoryRepository,
-                        tableRepository = tableRepository
+                        tableRepository = tableRepository,
+                        turnRepository = turnRepository
                     )
                 )
                 MainShellRoute(

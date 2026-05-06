@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import ioc.andresgq.gamehubmobile.data.remote.dto.CategoryDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.GameRequestDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.ReservationMesaOperativaDto
+import ioc.andresgq.gamehubmobile.data.remote.dto.ReservationTurnoDto
 import ioc.andresgq.gamehubmobile.ui.screens.gamecatalog.GameItemUi
 import ioc.andresgq.gamehubmobile.ui.state.UiState
 
@@ -77,13 +78,14 @@ fun ManagementScreen(
     val gamesState by viewModel.gamesState.collectAsState()
     val categoriasState by viewModel.categoriasState.collectAsState()
     val mesasState by viewModel.mesasState.collectAsState()
+    val turnosState by viewModel.turnosState.collectAsState()
     val operationState by viewModel.operationState.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
     // ── Estado de tabs ──────────────────────────────────────────────────────
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
-    val tabs = listOf("Juegos", "Categorías", "Mesas")
+    val tabs = listOf("Juegos", "Categorías", "Mesas", "Turnos")
 
     // ── Estado del CRUD de juegos ───────────────────────────────────────────
     var editingGame by remember { mutableStateOf<GameItemUi?>(null) }
@@ -100,6 +102,11 @@ fun ManagementScreen(
     var showMesaFormDialog by remember { mutableStateOf(false) }
     var deletingMesa by remember { mutableStateOf<ReservationMesaOperativaDto?>(null) }
 
+    // ── Estado del CRUD de turnos ───────────────────────────────────────────
+    var editingTurno by remember { mutableStateOf<ReservationTurnoDto?>(null) }
+    var showTurnoFormDialog by remember { mutableStateOf(false) }
+    var deletingTurno by remember { mutableStateOf<ReservationTurnoDto?>(null) }
+
     LaunchedEffect(operationState) {
         when (operationState) {
             is UiState.Success -> {
@@ -108,6 +115,7 @@ fun ManagementScreen(
                 showGameFormDialog = false
                 showCategoriaFormDialog = false
                 showMesaFormDialog = false
+                showTurnoFormDialog = false
             }
             is UiState.Error -> {
                 snackbarHostState.showSnackbar((operationState as UiState.Error).message)
@@ -126,6 +134,7 @@ fun ManagementScreen(
                     0 -> { editingGame = null; showGameFormDialog = true }
                     1 -> { editingCategoria = null; showCategoriaFormDialog = true }
                     2 -> { editingMesa = null; showMesaFormDialog = true }
+                    3 -> { editingTurno = null; showTurnoFormDialog = true }
                 }
             }) {
                 Icon(
@@ -133,7 +142,8 @@ fun ManagementScreen(
                     contentDescription = when (selectedTab) {
                         0 -> "Añadir juego"
                         1 -> "Añadir categoría"
-                        else -> "Añadir mesa"
+                        2 -> "Añadir mesa"
+                        else -> "Añadir turno"
                     }
                 )
             }
@@ -225,6 +235,28 @@ fun ManagementScreen(
                         deletingMesa = null
                     },
                     onRetryMesas = { viewModel.loadMesas(force = true) }
+                )
+
+                3 -> TurnosTab(
+                    turnosState = turnosState,
+                    operationState = operationState,
+                    showFormDialog = showTurnoFormDialog,
+                    editingTurno = editingTurno,
+                    deletingTurno = deletingTurno,
+                    onEditTurno = { turno -> editingTurno = turno; showTurnoFormDialog = true },
+                    onDeleteTurno = { turno -> deletingTurno = turno },
+                    onDismissForm = { showTurnoFormDialog = false },
+                    onSubmitForm = { nombre, horaInicio, horaFin ->
+                        val current = editingTurno
+                        if (current == null) viewModel.createTurno(nombre, horaInicio, horaFin)
+                        else viewModel.updateTurno(current.id, nombre, horaInicio, horaFin)
+                    },
+                    onDismissDelete = { deletingTurno = null },
+                    onConfirmDelete = { turno ->
+                        viewModel.deleteTurno(turno.id)
+                        deletingTurno = null
+                    },
+                    onRetryTurnos = { viewModel.loadTurnos(force = true) }
                 )
             }
         }
@@ -1041,3 +1073,299 @@ private fun MesaFormDialog(
         }
     )
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Pestaña de turnos
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun TurnosTab(
+    turnosState: UiState<List<ReservationTurnoDto>>,
+    operationState: UiState<Unit>,
+    showFormDialog: Boolean,
+    editingTurno: ReservationTurnoDto?,
+    deletingTurno: ReservationTurnoDto?,
+    onEditTurno: (ReservationTurnoDto) -> Unit,
+    onDeleteTurno: (ReservationTurnoDto) -> Unit,
+    onDismissForm: () -> Unit,
+    onSubmitForm: (nombre: String, horaInicio: String?, horaFin: String?) -> Unit,
+    onDismissDelete: () -> Unit,
+    onConfirmDelete: (ReservationTurnoDto) -> Unit,
+    onRetryTurnos: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+    ) {
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "Gestión de turnos",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "Define los turnos horarios disponibles para reservas",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(12.dp))
+
+        when (val state = turnosState) {
+            UiState.Idle, UiState.Loading -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+            is UiState.Error -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = state.message,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Button(onClick = onRetryTurnos) { Text("Reintentar") }
+                    }
+                }
+            }
+            is UiState.Success -> {
+                val turnos = state.data
+                if (turnos.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            "No hay turnos configurados. Pulsa + para añadir uno.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(turnos, key = { it.id }) { turno ->
+                            TurnoManagementItem(
+                                turno = turno,
+                                onEdit = { onEditTurno(turno) },
+                                onDelete = { onDeleteTurno(turno) }
+                            )
+                        }
+                        item { Spacer(Modifier.height(80.dp)) }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showFormDialog) {
+        val isSaving = operationState is UiState.Loading
+        TurnoFormDialog(
+            turno = editingTurno,
+            isSaving = isSaving,
+            onDismiss = onDismissForm,
+            onSubmit = onSubmitForm
+        )
+    }
+
+    deletingTurno?.let { turno ->
+        AlertDialog(
+            onDismissRequest = onDismissDelete,
+            title = { Text("Eliminar turno") },
+            text = {
+                Text(
+                    "¿Seguro que quieres eliminar el turno \"${turno.nombre}\"? " +
+                        "No podrá eliminarse si tiene reservas activas asociadas."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { onConfirmDelete(turno) },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("Eliminar") }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissDelete) { Text("Cancelar") }
+            }
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Item de listado — turnos
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun TurnoManagementItem(
+    turno: ReservationTurnoDto,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ElevatedCard(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = turno.nombre,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                val horaInfo = buildString {
+                    val inicio = turno.horaInicio?.take(5) // "HH:mm"
+                    val fin    = turno.horaFin?.take(5)
+                    if (inicio != null && fin != null) append("$inicio – $fin")
+                    else if (inicio != null) append("Inicio: $inicio")
+                    else if (fin != null)    append("Fin: $fin")
+                    else append("Sin horario definido")
+                }
+                Text(
+                    text = horaInfo,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(onClick = onEdit) {
+                Icon(
+                    Icons.Filled.Edit,
+                    contentDescription = "Editar ${turno.nombre}",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Filled.Delete,
+                    contentDescription = "Eliminar ${turno.nombre}",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Diálogo de creación / edición — turnos
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Valida que un texto sea una hora con formato HH:mm o esté vacío (campo opcional). */
+private fun isValidTimeOrEmpty(text: String): Boolean {
+    if (text.isBlank()) return true
+    return Regex("^([01]\\d|2[0-3]):[0-5]\\d$").matches(text)
+}
+
+@Composable
+private fun TurnoFormDialog(
+    turno: ReservationTurnoDto?,
+    isSaving: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: (nombre: String, horaInicio: String?, horaFin: String?) -> Unit
+) {
+    // El servidor devuelve "HH:mm:ss"; mostramos solo "HH:mm" en el campo de texto
+    var nombre     by rememberSaveable { mutableStateOf(turno?.nombre ?: "") }
+    var horaInicio by rememberSaveable { mutableStateOf(turno?.horaInicio?.take(5) ?: "") }
+    var horaFin    by rememberSaveable { mutableStateOf(turno?.horaFin?.take(5) ?: "") }
+
+    val nombreError      = nombre.isBlank()
+    val horaInicioError  = !isValidTimeOrEmpty(horaInicio)
+    val horaFinError     = !isValidTimeOrEmpty(horaFin)
+
+    AlertDialog(
+        onDismissRequest = { if (!isSaving) onDismiss() },
+        title = { Text(if (turno == null) "Nuevo turno" else "Editar turno") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .imePadding(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = nombre,
+                    onValueChange = { nombre = it },
+                    label = { Text("Nombre *") },
+                    isError = nombreError,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (nombreError) {
+                    Text(
+                        "El nombre es obligatorio",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                OutlinedTextField(
+                    value = horaInicio,
+                    onValueChange = { horaInicio = it },
+                    label = { Text("Hora inicio (HH:mm)") },
+                    isError = horaInicioError,
+                    singleLine = true,
+                    placeholder = { Text("p.e. 10:00") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (horaInicioError) {
+                    Text(
+                        "Formato inválido. Usa HH:mm (p.e. 09:30)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                OutlinedTextField(
+                    value = horaFin,
+                    onValueChange = { horaFin = it },
+                    label = { Text("Hora fin (HH:mm)") },
+                    isError = horaFinError,
+                    singleLine = true,
+                    placeholder = { Text("p.e. 12:00") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (horaFinError) {
+                    Text(
+                        "Formato inválido. Usa HH:mm (p.e. 12:00)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                Text(
+                    text = "Las horas son opcionales. Si se omiten, el turno no mostrará franja horaria.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onSubmit(
+                        nombre.trim(),
+                        horaInicio.trim().takeIf { it.isNotBlank() },
+                        horaFin.trim().takeIf { it.isNotBlank() }
+                    )
+                },
+                enabled = !isSaving && !nombreError && !horaInicioError && !horaFinError
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(if (turno == null) "Crear" else "Guardar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isSaving) { Text("Cancelar") }
+        }
+    )
+}
+

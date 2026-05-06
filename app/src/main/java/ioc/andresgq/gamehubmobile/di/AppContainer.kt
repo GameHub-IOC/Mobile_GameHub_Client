@@ -13,11 +13,13 @@ import ioc.andresgq.gamehubmobile.data.remote.GameRemoteDataSource
 import ioc.andresgq.gamehubmobile.data.remote.TableApi
 import ioc.andresgq.gamehubmobile.data.remote.ReservationApi
 import ioc.andresgq.gamehubmobile.data.remote.ReservationRemoteDataSource
+import ioc.andresgq.gamehubmobile.data.remote.TurnApi
 import ioc.andresgq.gamehubmobile.data.repository.AuthRepository
 import ioc.andresgq.gamehubmobile.data.repository.CategoryRepository
 import ioc.andresgq.gamehubmobile.data.repository.GameRepository
 import ioc.andresgq.gamehubmobile.data.repository.TableRepository
 import ioc.andresgq.gamehubmobile.data.repository.ReservationRepository
+import ioc.andresgq.gamehubmobile.data.repository.TurnRepository
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -53,6 +55,11 @@ interface AppContainer {
      * Repositorio para la gestión administrativa de mesas del local.
      */
     val tableRepository: TableRepository
+
+    /**
+     * Repositorio para la gestión administrativa de turnos horarios.
+     */
+    val turnRepository: TurnRepository
 
     /**
      * Repositorio encargado de crear reservas.
@@ -190,6 +197,11 @@ class DefaultAppContainer(context: Context) : AppContainer {
     private val tableApi = retrofit.create(TableApi::class.java)
 
     /**
+     * Implementación de [TurnApi] generada por Retrofit.
+     */
+    private val turnApi = retrofit.create(TurnApi::class.java)
+
+    /**
      * Implementación de [ReservationApi] generada por Retrofit.
      */
     private val reservationApi = retrofit.create(ReservationApi::class.java)
@@ -252,6 +264,13 @@ class DefaultAppContainer(context: Context) : AppContainer {
      */
     override val tableRepository: TableRepository = TableRepository(
         tableApi = tableApi
+    )
+
+    /**
+     * Repositorio de turnos expuesto por el contenedor.
+     */
+    override val turnRepository: TurnRepository = TurnRepository(
+        turnApi = turnApi
     )
 
     /**
