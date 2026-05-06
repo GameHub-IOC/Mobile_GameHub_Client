@@ -39,7 +39,7 @@ class GameManagementViewModel(
 
     init {
         loadGames()
-        loadCategorias()
+        loadCategorias(force = false)
     }
 
     /** Carga o recarga la lista de juegos desde el repositorio. */
@@ -68,13 +68,59 @@ class GameManagementViewModel(
     }
 
     /** Carga el listado de categorías (necesario para el desplegable del formulario). */
-    fun loadCategorias() {
-        if (_categoriasState.value is UiState.Loading || _categoriasState.value is UiState.Success) return
+    fun loadCategorias(force: Boolean = false) {
+        if (!force && (_categoriasState.value is UiState.Loading || _categoriasState.value is UiState.Success)) return
         viewModelScope.launch {
             _categoriasState.value = UiState.Loading
             _categoriasState.value = categoriaRepository.getCategorias().fold(
                 onSuccess = { UiState.Success(it) },
                 onFailure = { UiState.Error(it.message ?: "Error al cargar categorías") }
+            )
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  CRUD de categorías
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** Crea una nueva categoría. */
+    fun createCategoria(nombre: String) {
+        viewModelScope.launch {
+            _operationState.value = UiState.Loading
+            _operationState.value = categoriaRepository.createCategoria(nombre).fold(
+                onSuccess = {
+                    loadCategorias(force = true)
+                    UiState.Success(Unit)
+                },
+                onFailure = { UiState.Error(it.message ?: "Error al crear la categoría") }
+            )
+        }
+    }
+
+    /** Actualiza el nombre de una categoría existente. */
+    fun updateCategoria(id: Long, nuevoNombre: String) {
+        viewModelScope.launch {
+            _operationState.value = UiState.Loading
+            _operationState.value = categoriaRepository.updateCategoria(id, nuevoNombre).fold(
+                onSuccess = {
+                    loadCategorias(force = true)
+                    UiState.Success(Unit)
+                },
+                onFailure = { UiState.Error(it.message ?: "Error al actualizar la categoría") }
+            )
+        }
+    }
+
+    /** Elimina una categoría por su nombre. */
+    fun deleteCategoria(nombre: String) {
+        viewModelScope.launch {
+            _operationState.value = UiState.Loading
+            _operationState.value = categoriaRepository.deleteCategoria(nombre).fold(
+                onSuccess = {
+                    loadCategorias(force = true)
+                    UiState.Success(Unit)
+                },
+                onFailure = { UiState.Error(it.message ?: "Error al eliminar la categoría") }
             )
         }
     }
