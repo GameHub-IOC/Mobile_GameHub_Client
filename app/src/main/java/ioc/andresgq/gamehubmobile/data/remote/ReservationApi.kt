@@ -7,8 +7,10 @@ import ioc.andresgq.gamehubmobile.data.remote.dto.ReservationMesaOperativaDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.ReservationTurnoDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.ReservationUserRequestDto
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 /**
@@ -75,4 +77,19 @@ interface ReservationApi {
     suspend fun createReservationAsAdmin(
         @Body request: ReservationAdminRequestDto
     )
+
+    /**
+     * Cancela/elimina una reserva por su id.
+     * Los usuarios solo pueden borrar las suyas; los ADMIN, cualquiera.
+     */
+    @DELETE("reservas/{id}")
+    suspend fun deleteReservation(@Path("id") id: Long)
+
+    /**
+     * Devuelve las reservas de un usuario concreto (solo ADMIN).
+     */
+    @GET("reservas/usuario/{nombreUsuario}")
+    suspend fun getReservationsByUser(
+        @Path("nombreUsuario") nombreUsuario: String
+    ): List<ReservationListItemDto>
 }

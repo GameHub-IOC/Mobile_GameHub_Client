@@ -164,7 +164,10 @@ fun MainShellRoute(
     val allTablesState by reservationFlowViewModel.allTablesState.collectAsState()
 
     val myReservationsState by reservationListViewModel.myReservationsState.collectAsState()
-    val adminReservationsState by reservationListViewModel.adminReservationsState.collectAsState()
+    val adminReservationsState by reservationListViewModel.filteredAdminReservationsState.collectAsState()
+    val deleteState by reservationListViewModel.deleteState.collectAsState()
+    val adminStatusFilter by reservationListViewModel.statusFilter.collectAsState()
+    val adminUserFilter by reservationListViewModel.userFilter.collectAsState()
 
     val tabs = remember(role) { bottomTabsForRole(role) }
     val startDestination = tabs.first().route
@@ -365,7 +368,10 @@ fun MainShellRoute(
             composable(MainTabRoutes.MY_RESERVATIONS) {
                 MyReservationsScreen(
                     state = myReservationsState,
-                    onReload = reservationListViewModel::loadMyReservations
+                    deleteState = deleteState,
+                    onReload = reservationListViewModel::loadMyReservations,
+                    onDelete = { id -> reservationListViewModel.deleteReservation(id, UserRole.USER) },
+                    onConsumeDeleteState = reservationListViewModel::consumeDeleteState
                 )
             }
 
@@ -411,7 +417,14 @@ fun MainShellRoute(
             composable(MainTabRoutes.ADMIN_RESERVATIONS) {
                 AdminReservationsScreen(
                     state = adminReservationsState,
-                    onReload = reservationListViewModel::loadAdminReservations
+                    deleteState = deleteState,
+                    statusFilter = adminStatusFilter,
+                    userFilter = adminUserFilter,
+                    onReload = reservationListViewModel::loadAdminReservations,
+                    onDelete = { id -> reservationListViewModel.deleteReservation(id, UserRole.ADMIN) },
+                    onConsumeDeleteState = reservationListViewModel::consumeDeleteState,
+                    onStatusFilterChange = reservationListViewModel::setStatusFilter,
+                    onUserFilterChange = reservationListViewModel::setUserFilter
                 )
             }
 

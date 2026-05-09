@@ -191,8 +191,53 @@ class ReservationRepository(
     }
 
     /**
-     * Intenta extraer el mensaje de error real del cuerpo de la respuesta HTTP.
-     *
+     * Cancela/elimina una reserva por su id.
+     * Tanto usuarios (solo las suyas) como administradores (cualquiera) pueden invocarlo.
+     */
+    suspend fun deleteReservation(id: Long): Result<Unit> = withContext(ioDispatcher) {
+        try {
+            remoteDataSource.deleteReservation(id)
+            Result.success(Unit)
+        } catch (e: HttpException) {
+            val message = when (e.code()) {
+                401 -> "Tu sesión ha caducado"
+                403 -> "No tienes permiso para cancelar esta reserva"
+                404 -> "Reserva no encontrada"
+                else -> extractBackendMessage(e) ?: "Error del servidor (${e.code()})"
+            }
+            Result.failure(Exception(message))
+        } catch (_: IOException) {
+            Result.failure(Exception("No se pudo conectar con el servidor"))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(Exception("Error inesperado al cancelar la reserva: ${e.message}"))
+        }
+    }
+
+    /**
+     * Devuelve las reservas de un usuario concreto (solo ADMIN).
+     */
+    suspend fun getReservationsByUser(nombreUsuario: String): Result<List<ReservationListItemUi>> =
+        withContext(ioDispatcher) {
+            try {
+                val reservations = remoteDataSource.getReservationsByUser(nombreUsuario)
+                    .map { it.toUi() }
+                    .sortedByDescending { it.fecha }
+                Result.success(reservations)
+            } catch (e: HttpException) {
+                Result.failure(Exception(httpErrorMessage(e.code(), "reservas del usuario")))
+            } catch (_: IOException) {
+                Result.failure(Exception("No se pudo conectar con el servidor"))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Result.failure(Exception("Error inesperado al obtener reservas del usuario: ${e.message}"))
+            }
+        }
+
+    /**
+     * Intenta extraer el mensaje de error real del cuerpo de la respuesta HTTP.     *
      * El backend Spring Boot suele devolver:
      *   { "message": "..." }  o  { "error": "..." }  o texto plano.
      * Si no se puede parsear, devuelve null y se usa el fallback genérico.

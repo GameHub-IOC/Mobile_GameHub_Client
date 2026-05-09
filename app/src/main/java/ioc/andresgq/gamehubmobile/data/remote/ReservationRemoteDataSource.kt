@@ -76,6 +76,18 @@ class ReservationRemoteDataSource(
             )
         }
     }
+
+    /**
+     * Cancela/elimina una reserva por su id.
+     */
+    suspend fun deleteReservation(id: Long) =
+        reservationApi.deleteReservation(id)
+
+    /**
+     * Devuelve las reservas de un usuario concreto (solo ADMIN).
+     */
+    suspend fun getReservationsByUser(nombreUsuario: String): List<ReservationListItemDto> =
+        reservationApi.getReservationsByUser(nombreUsuario)
 }
 
 
