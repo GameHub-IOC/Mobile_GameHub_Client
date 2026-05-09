@@ -1,10 +1,12 @@
 package ioc.andresgq.gamehubmobile.data.remote
 
+import ioc.andresgq.gamehubmobile.data.remote.dto.UserCreateRequestDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.UserDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.UserUpdateRequestDto
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 
@@ -45,5 +47,16 @@ interface UserApi {
      */
     @DELETE("usuarios/{id}")
     suspend fun delete(@Path("id") id: Long)
+
+    /**
+     * Crea un nuevo usuario desde el panel de administración.
+     *
+     * El backend cifra la contraseña antes de persistirla.
+     * Permite asignar cualquier rol, incluido ADMIN.
+     *
+     * @param user datos del nuevo usuario (nombre, contraseña en texto plano, rol).
+     */
+    @POST("usuarios")
+    suspend fun create(@Body user: UserCreateRequestDto): UserDto
 }
 

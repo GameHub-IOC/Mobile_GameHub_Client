@@ -1,6 +1,7 @@
 package ioc.andresgq.gamehubmobile.data.repository
 
 import ioc.andresgq.gamehubmobile.data.remote.UserApi
+import ioc.andresgq.gamehubmobile.data.remote.dto.UserCreateRequestDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.UserDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.UserUpdateRequestDto
 import kotlinx.coroutines.CancellationException
@@ -103,5 +104,37 @@ class UserRepository(
             Result.failure(Exception("Error inesperado al eliminar el usuario: ${e.message}"))
         }
     }
+
+    /**
+     * Crea un nuevo usuario desde el panel de administración.
+     *
+     * Permite asignar directamente el rol (incluido ADMIN), a diferencia del
+     * registro público que siempre asigna USER.
+     *
+     * @param nombre   nombre de acceso único del nuevo usuario.
+     * @param password contraseña en texto plano (el backend la cifra).
+     * @param rol      rol inicial: `"ADMIN"` o `"USER"`.
+     * @return [Result.success] con el [UserDto] creado, o error encapsulado.
+     */
+    suspend fun createUser(nombre: String, password: String, rol: String): Result<UserDto> =
+        withContext(ioDispatcher) {
+            try {
+                val created = userApi.create(UserCreateRequestDto(nombre = nombre, password = password, rol = rol))
+                Result.success(created)
+            } catch (e: HttpException) {
+                val msg = when (e.code()) {
+                    400  -> "El nombre de usuario \"$nombre\" ya existe"
+                    403  -> "Sin permisos para crear usuarios"
+                    else -> "Error del servidor (${e.code()})"
+                }
+                Result.failure(Exception(msg))
+            } catch (_: IOException) {
+                Result.failure(Exception("No se pudo conectar con el servidor"))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Result.failure(Exception("Error inesperado al crear el usuario: ${e.message}"))
+            }
+        }
 }
 

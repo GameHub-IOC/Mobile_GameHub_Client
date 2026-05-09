@@ -30,3 +30,18 @@ data class UserUpdateRequestDto(
     val rol: String
 )
 
+/**
+ * DTO usado para crear un nuevo usuario desde el panel de administración.
+ *
+ * El backend cifrará la contraseña automáticamente antes de persistirla.
+ *
+ * @property nombre   nombre de acceso único del nuevo usuario.
+ * @property password contraseña en texto plano (el backend la cifra).
+ * @property rol      rol inicial: "ADMIN" o "USER".
+ */
+data class UserCreateRequestDto(
+    val nombre: String,
+    val password: String,
+    val rol: String
+)
+

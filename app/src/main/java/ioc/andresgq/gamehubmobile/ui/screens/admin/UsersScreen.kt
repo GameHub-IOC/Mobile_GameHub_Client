@@ -15,7 +15,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
@@ -24,10 +26,16 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -47,6 +55,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import ioc.andresgq.gamehubmobile.ui.state.UiState
 
@@ -66,6 +76,7 @@ import ioc.andresgq.gamehubmobile.ui.state.UiState
  * @param viewModel instancia de [UsersViewModel] que proporciona el estado y las acciones.
  * @param modifier  modificador opcional para el composable raíz.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UsersScreen(
     viewModel: UsersViewModel,
@@ -81,6 +92,9 @@ fun UsersScreen(
 
     // Usuario cuya eliminación está pendiente de confirmar
     var deletingUser by remember { mutableStateOf<UserItemUi?>(null) }
+
+    // Controla la visibilidad del diálogo de creación
+    var showCreateDialog by remember { mutableStateOf(false) }
 
     // Muestra el resultado de la última operación como snackbar
     LaunchedEffect(operationState) {
@@ -99,7 +113,15 @@ fun UsersScreen(
 
     Scaffold(
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showCreateDialog = true },
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = "Crear usuario")
+            }
+        }
     ) { innerPadding ->
 
         Column(
@@ -257,6 +279,112 @@ fun UsersScreen(
             }
         )
     }
+
+    // ── Diálogo de creación de usuario ──────────────────────────────────────
+    if (showCreateDialog) {
+        CreateUserDialog(
+            onDismiss = { showCreateDialog = false },
+            onCreate = { nombre, password, rol ->
+                viewModel.createUser(nombre, password, rol)
+                showCreateDialog = false
+            }
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Diálogo de creación de usuario
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Diálogo modal para crear un nuevo usuario desde el panel de administración.
+ *
+ * Contiene campos para nombre de usuario, contraseña y un selector de rol.
+ * El botón de confirmar queda deshabilitado mientras algún campo esté vacío.
+ *
+ * @param onDismiss callback al cerrar sin guardar.
+ * @param onCreate  callback con (nombre, password, rol) al confirmar.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CreateUserDialog(
+    onDismiss: () -> Unit,
+    onCreate: (nombre: String, password: String, rol: String) -> Unit
+) {
+    var nombre by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var rol by rememberSaveable { mutableStateOf("USER") }
+    var roleDropdownExpanded by remember { mutableStateOf(false) }
+
+    val roles = listOf("USER", "ADMIN")
+    val isValid = nombre.isNotBlank() && password.isNotBlank()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Crear nuevo usuario") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = nombre,
+                    onValueChange = { nombre = it },
+                    label = { Text("Nombre de usuario") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Contraseña") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                // Selector de rol con ExposedDropdownMenu
+                ExposedDropdownMenuBox(
+                    expanded = roleDropdownExpanded,
+                    onExpandedChange = { roleDropdownExpanded = it },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = rol,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Rol") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = roleDropdownExpanded)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                    )
+                    ExposedDropdownMenu(
+                        expanded = roleDropdownExpanded,
+                        onDismissRequest = { roleDropdownExpanded = false }
+                    ) {
+                        roles.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option) },
+                                onClick = {
+                                    rol = option
+                                    roleDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onCreate(nombre.trim(), password, rol) },
+                enabled = isValid
+            ) { Text("Crear") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        }
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

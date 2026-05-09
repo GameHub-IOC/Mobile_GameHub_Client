@@ -116,6 +116,25 @@ class UsersViewModel(
         }
     }
 
+    /**
+     * Crea un nuevo usuario con los datos proporcionados.
+     *
+     * Tras completarse con éxito recarga el listado para mostrar el nuevo usuario.
+     *
+     * @param nombre   nombre de acceso único.
+     * @param password contraseña en texto plano.
+     * @param rol      rol inicial: `"ADMIN"` o `"USER"`.
+     */
+    fun createUser(nombre: String, password: String, rol: String) {
+        viewModelScope.launch {
+            _operationState.value = UiState.Loading
+            _operationState.value = userRepository.createUser(nombre, password, rol).fold(
+                onSuccess = { loadUsers(force = true); UiState.Success(Unit) },
+                onFailure = { UiState.Error(it.message ?: "Error al crear el usuario") }
+            )
+        }
+    }
+
     /** Resetea el estado de operación a [UiState.Idle] tras consumir el feedback de la UI. */
     fun consumeOperationState() {
         _operationState.value = UiState.Idle
