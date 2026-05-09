@@ -2,14 +2,10 @@ package ioc.andresgq.gamehubmobile.data.remote
 
 import ioc.andresgq.gamehubmobile.data.remote.dto.OcupacionResponseDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.ReservationAdminRequestDto
-import ioc.andresgq.gamehubmobile.data.remote.dto.ReservationJuegoRefDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.ReservationListItemDto
-import ioc.andresgq.gamehubmobile.data.remote.dto.ReservationMesaIdRefDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.ReservationMesaOperativaDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.ReservationTurnoDto
-import ioc.andresgq.gamehubmobile.data.remote.dto.ReservationTurnoRefDto
 import ioc.andresgq.gamehubmobile.data.remote.dto.ReservationUserRequestDto
-import ioc.andresgq.gamehubmobile.data.remote.dto.ReservationUsuarioRefDto
 import ioc.andresgq.gamehubmobile.domain.reservation.CreateReservationCommand
 import ioc.andresgq.gamehubmobile.domain.reservation.UserRole
 
@@ -22,11 +18,6 @@ import ioc.andresgq.gamehubmobile.domain.reservation.UserRole
 class ReservationRemoteDataSource(
     private val reservationApi: ReservationApi
 ) {
-    private fun CreateReservationCommand.toJuegoRefOrNull(): ReservationJuegoRefDto? {
-        val normalizedName = juegoNombre?.trim().takeUnless { it.isNullOrBlank() }
-        if (normalizedName == null) return null
-        return ReservationJuegoRefDto(nombre = normalizedName)
-    }
 
     suspend fun getMyReservations(): List<ReservationListItemDto> =
         reservationApi.getMyReservations()
@@ -51,29 +42,36 @@ class ReservationRemoteDataSource(
         reservationApi.getOcupacion(fecha = fecha)
 
     /**
-     * Crea una reserva. La mesa se referencia por su [id] de base de datos
-     * tal como exige el contrato actual del servidor (POST /reservas).
+     * Crea una reserva enviando AMBOS formatos de identificación (por ID y por nombre/número)
+     * para que el servidor pueda usar el que prefiera sin lanzar NullPointerException.
+     *
+     * Formato primario del servidor  → mesaNumero + turnoNombre  (ejemplos 1/2 del Swagger)
+     * Formato de compatibilidad      → mesaId     + turnoId      (ejemplo 3 del Swagger)
      */
     suspend fun createReservation(command: CreateReservationCommand) {
+        val juegoNombre = command.juegoNombre?.trim().takeUnless { it.isNullOrBlank() }
+
         when (command.role) {
             UserRole.USER -> reservationApi.createReservationAsUser(
                 ReservationUserRequestDto(
                     fecha = command.fecha,
-                    mesa = ReservationMesaIdRefDto(id = command.mesaId),
-                    turno = ReservationTurnoRefDto(id = command.turnoId),
-                    juego = command.toJuegoRefOrNull()
+                    mesaId = command.mesaId,
+                    mesaNumero = command.mesaNumero,
+                    turnoId = command.turnoId,
+                    turnoNombre = command.turnoNombre,
+                    juegoNombre = juegoNombre
                 )
             )
 
             UserRole.ADMIN -> reservationApi.createReservationAsAdmin(
                 ReservationAdminRequestDto(
                     fecha = command.fecha,
-                    mesa = ReservationMesaIdRefDto(id = command.mesaId),
-                    turno = ReservationTurnoRefDto(id = command.turnoId),
-                    juego = command.toJuegoRefOrNull(),
-                    usuario = ReservationUsuarioRefDto(
-                        nombre = command.usuarioNombre.orEmpty()
-                    )
+                    mesaId = command.mesaId,
+                    mesaNumero = command.mesaNumero,
+                    turnoId = command.turnoId,
+                    turnoNombre = command.turnoNombre,
+                    juegoNombre = juegoNombre,
+                    usuarioNombre = command.usuarioNombre?.trim().takeUnless { it.isNullOrBlank() }
                 )
             )
         }

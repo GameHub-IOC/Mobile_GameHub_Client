@@ -3,71 +3,38 @@ package ioc.andresgq.gamehubmobile.data.remote.dto
 /**
  * Cuerpo para crear una reserva como usuario normal.
  *
- * Forma esperada (según contrato Swagger):
- * {
- *   "fecha": "yyyy-MM-dd",
- *   "mesa": { "id": 4 },
- *   "turno": { "id": 2 },
- *   "juego": { "nombre": "Catan" }
- * }
- *
- * @property fecha fecha de la reserva.
- * @property mesa referencia de mesa por id para reservas.
- * @property turno referencia de turno por id para reservas.
- * @property juego referencia de juego por nombre para reservas.
+ * Se envían AMBOS formatos de identificación que acepta el servidor:
+ *  · mesaNumero + turnoNombre  → formato primario (ejemplos 1 y 2 del Swagger)
+ *  · mesaId     + turnoId      → formato de compatibilidad (ejemplo 3)
+ * Así el servidor puede usar el que encuentre disponible sin lanzar NPE.
  */
 data class ReservationUserRequestDto(
     val fecha: String,
-    val mesa: ReservationMesaIdRefDto,
-    val turno: ReservationTurnoRefDto,
-    val juego: ReservationJuegoRefDto? = null
+    val mesaId: Long,
+    val mesaNumero: Int,
+    val turnoId: Long,
+    val turnoNombre: String? = null,
+    val juegoNombre: String? = null
 )
 
 /**
  * Cuerpo para crear una reserva como administrador.
- * Amplía el request de usuario incluyendo el usuario objetivo de la reserva.
  *
- * Forma esperada (según contrato Swagger):
- * {
- *   "fecha": "yyyy-MM-dd",
- *   "mesa": { "id": 4 },
- *   "turno": { "id": 2 },
- *   "juego": { "nombre": "Catan" },
- *   "usuario": { "nombre": "usuarioObjetivo" }
- * }
- *
- * @property fecha fecha de la reserva
- * @property mesa referencia de mesa por id para reservas
- * @property turno referencia de turno por id para reservas
- * @property juego referencia de juego por nombre para reservas
- * @property usuario referencia de usuario por nombre para reservas
+ * Igual que [ReservationUserRequestDto] pero añade [usuarioNombre] (solo ADMIN).
  */
 data class ReservationAdminRequestDto(
     val fecha: String,
-    val mesa: ReservationMesaIdRefDto,
-    val turno: ReservationTurnoRefDto,
-    val juego: ReservationJuegoRefDto? = null,
-    val usuario: ReservationUsuarioRefDto
-)
-
-/**
- * Referencia mínima de mesa por id para envío en POST /reservas.
- * El servidor identifica la mesa por su id de base de datos.
- *
- * @property id id único de la mesa.
- */
-data class ReservationMesaIdRefDto(
-    val id: Long
+    val mesaId: Long,
+    val mesaNumero: Int,
+    val turnoId: Long,
+    val turnoNombre: String? = null,
+    val juegoNombre: String? = null,
+    val usuarioNombre: String? = null
 )
 
 /**
  * Referencia de mesa usada en respuestas de reservas (listados).
  * Contiene todos los campos que el servidor puede devolver dentro de un objeto Reserva.
- *
- * @property id id único de la mesa.
- * @property numero número visible de la mesa en el local.
- * @property capacidad capacidad máxima de jugadores.
- * @property operativa estado operativo de la mesa.
  */
 data class ReservationMesaRefDto(
     val id: Long? = null,
@@ -76,26 +43,18 @@ data class ReservationMesaRefDto(
     val operativa: Boolean? = null
 )
 
-/** Referencia mínima de turno por identificador.
- *
- * @property id identificador único del turno.
- */
+/** Referencia mínima de turno para respuestas de listado. */
 data class ReservationTurnoRefDto(
-    val id: Long
+    val id: Long? = null,
+    val nombre: String? = null
 )
 
-/** Referencia mínima de juego por nombre según contrato actual del backend.
- *
- * @property nombre nombre del juego.
- */
+/** Referencia mínima de juego para respuestas de listado. */
 data class ReservationJuegoRefDto(
     val nombre: String
 )
 
-/** Referencia mínima de usuario por nombre.
- *
- * @property nombre nombre del usuario.
- */
+/** Referencia mínima de usuario para respuestas de listado. */
 data class ReservationUsuarioRefDto(
     val nombre: String
 )

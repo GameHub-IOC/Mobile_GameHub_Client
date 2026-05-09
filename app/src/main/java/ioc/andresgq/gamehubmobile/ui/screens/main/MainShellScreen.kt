@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
@@ -89,6 +88,7 @@ import ioc.andresgq.gamehubmobile.ui.model.reservation.ReservationWizardStep
 import ioc.andresgq.gamehubmobile.ui.screens.admin.GameManagementViewModel
 import ioc.andresgq.gamehubmobile.ui.screens.admin.ManagementScreen
 import ioc.andresgq.gamehubmobile.ui.screens.admin.UsersScreen
+import ioc.andresgq.gamehubmobile.ui.screens.admin.UsersViewModel
 import ioc.andresgq.gamehubmobile.ui.screens.gamecatalog.GameListScreen
 import ioc.andresgq.gamehubmobile.ui.screens.gamecatalog.CatalogViewModel
 import ioc.andresgq.gamehubmobile.ui.screens.gamecatalog.GameItemUi
@@ -141,6 +141,7 @@ fun MainShellRoute(
     reservationFlowViewModel: ReservationFlowViewModel,
     reservationListViewModel: ReservationListViewModel,
     gameManagementViewModel: GameManagementViewModel? = null,
+    usersViewModel: UsersViewModel? = null,
     onGameClick: (Long) -> Unit,
     onLogoutSuccess: () -> Unit,
     onCloseApp: () -> Unit,
@@ -425,7 +426,18 @@ fun MainShellRoute(
             }
 
             composable(MainTabRoutes.USERS) {
-                UsersScreen()
+                val vm = usersViewModel
+                if (vm != null) {
+                    UsersScreen(viewModel = vm)
+                } else {
+                    // Fallback: no debería ocurrir para el rol ADMIN en producción
+                    androidx.compose.foundation.layout.Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        androidx.compose.material3.Text("Sección no disponible")
+                    }
+                }
             }
 
             composable(MainTabRoutes.PROFILE) {
@@ -578,7 +590,7 @@ private fun ReservationWizardTabScreen(
 
         when (wizardState.currentStep) {
             // Paso 1: captura de fecha base sobre la que se calculan mesas libres.
-            ReservationWizardStep.DATE -> {
+            ReservationWizardStep.FECHA -> {
                 item {
                     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -651,7 +663,7 @@ private fun ReservationWizardTabScreen(
 
             // Paso 2: selección del turno. Desde aquí ya se puede desencadenar la
             // consulta de mesas libres si la fecha es válida.
-            ReservationWizardStep.TURN -> {
+            ReservationWizardStep.TURNO -> {
                 item { Text("Selecciona un turno") }
                 when (turnOptionsState) {
                     UiState.Idle, UiState.Loading -> item {
@@ -699,7 +711,7 @@ private fun ReservationWizardTabScreen(
 
             // Paso 3: mapa visual de mesas. Verde = libre (filtradas por fecha+turno desde
             // GET /mesas/libres?fecha=…&turnoId=…); gris = no disponible en ese turno.
-            ReservationWizardStep.TABLE -> {
+            ReservationWizardStep.MESA -> {
                 item {
                     Text("Selecciona una mesa")
                     Text(
@@ -785,7 +797,7 @@ private fun ReservationWizardTabScreen(
 
             // Paso 4: selección de juego requerida. Solo los juegos disponibles
             // pueden elegirse. El filtro ayuda a reducir el catálogo.
-            ReservationWizardStep.GAME -> {
+            ReservationWizardStep.JUEGO -> {
                 item {
                     Text("Selecciona un juego")
                     Text(
@@ -863,7 +875,7 @@ private fun ReservationWizardTabScreen(
                 }
             }
 
-            ReservationWizardStep.CONFIRMATION -> {
+            ReservationWizardStep.CONFIRMACION -> {
                 item {
                     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                         Column(
@@ -931,7 +943,7 @@ private fun ReservationWizardTabScreen(
 
             // Si la mesa deja de estar disponible justo antes del submit, la UI permite
             // refrescar las opciones y rehacer la selección desde el paso TABLE.
-            if (wizardState.currentStep == ReservationWizardStep.TABLE && needsTableRecovery) {
+            if (wizardState.currentStep == ReservationWizardStep.MESA && needsTableRecovery) {
                 item {
                     OutlinedButton(onClick = onReloadTableOptions) {
                         Text("Actualizar mesas libres")
@@ -951,10 +963,10 @@ private fun ReservationWizardTabScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     onClick = onBack,
-                    enabled = wizardState.currentStep != ReservationWizardStep.DATE
+                    enabled = wizardState.currentStep != ReservationWizardStep.FECHA
                 ) { Text("Atras") }
 
-                if (wizardState.currentStep == ReservationWizardStep.CONFIRMATION) {
+                if (wizardState.currentStep == ReservationWizardStep.CONFIRMACION) {
                     Button(
                         onClick = onSubmit,
                         enabled = submitState !is UiState.Loading
@@ -967,12 +979,12 @@ private fun ReservationWizardTabScreen(
                         ?.data
                         ?.isNotEmpty()
                         ?: true
-                    val canContinueFromTable =
-                        wizardState.currentStep != ReservationWizardStep.TABLE ||
+                    val canContinueFromMESA =
+                        wizardState.currentStep != ReservationWizardStep.MESA ||
                             hasAvailableTables
                     Button(
                         onClick = onContinue,
-                        enabled = canContinueFromTable
+                        enabled = canContinueFromMESA
                     ) { Text("Continuar") }
                 }
             }

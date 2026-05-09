@@ -181,7 +181,7 @@ class ReservationFlowViewModel(
             return
         }
 
-        val stateForSubmit = _wizardState.value.copy(currentStep = ReservationWizardStep.CONFIRMATION)
+        val stateForSubmit = _wizardState.value.copy(currentStep = ReservationWizardStep.CONFIRMACION)
         val validation = validateForSubmit(stateForSubmit)
         _stepValidation.value = validation.takeUnless { it.isValid }
 
@@ -200,7 +200,7 @@ class ReservationFlowViewModel(
                 _stepValidation.value = ReservationStepValidation(false, availabilityCheck.message)
                 if (availabilityCheck.returnToTableStep) {
                     _needsTableRecovery.value = true
-                    _wizardState.value = _wizardState.value.copy(currentStep = ReservationWizardStep.TABLE)
+                    _wizardState.value = _wizardState.value.copy(currentStep = ReservationWizardStep.MESA)
                 }
                 _submitState.value = UiState.Error(availabilityCheck.message)
                 return@launch
@@ -211,6 +211,7 @@ class ReservationFlowViewModel(
                     role = _wizardState.value.role,
                     fecha = draft.fecha,
                     turnoId = draft.turnoId ?: 0L,
+                    turnoNombre = draft.turnoNombre,
                     mesaId = draft.mesaId ?: 0L,
                     mesaNumero = draft.mesaNumero ?: 0,
                     juegoNombre = draft.juegoNombre,
@@ -328,11 +329,11 @@ class ReservationFlowViewModel(
         baseValidation: ReservationStepValidation
     ): ReservationStepValidation {
         val state = _wizardState.value
-        if (state.currentStep != ReservationWizardStep.TABLE && !baseValidation.isValid) {
+        if (state.currentStep != ReservationWizardStep.MESA && !baseValidation.isValid) {
             return baseValidation
         }
         return when (state.currentStep) {
-            ReservationWizardStep.TURN -> {
+            ReservationWizardStep.TURNO -> {
                 if (!baseValidation.isValid) return baseValidation
                 val turnId = state.draft.turnoId
                 val turns = (_turnOptionsState.value as? UiState.Success)?.data.orEmpty()
@@ -343,7 +344,7 @@ class ReservationFlowViewModel(
                 }
             }
 
-            ReservationWizardStep.TABLE -> {
+            ReservationWizardStep.MESA -> {
                 val mesaId = state.draft.mesaId
                 val tables = (_tableOptionsState.value as? UiState.Success)?.data.orEmpty()
                 if (_tableOptionsState.value is UiState.Loading) {
@@ -369,22 +370,22 @@ class ReservationFlowViewModel(
      * Calcula el siguiente paso del wizard.
      */
     private fun ReservationWizardStep.next(): ReservationWizardStep? = when (this) {
-        ReservationWizardStep.DATE -> ReservationWizardStep.TURN
-        ReservationWizardStep.TURN -> ReservationWizardStep.TABLE
-        ReservationWizardStep.TABLE -> ReservationWizardStep.GAME
-        ReservationWizardStep.GAME -> ReservationWizardStep.CONFIRMATION
-        ReservationWizardStep.CONFIRMATION -> null
+        ReservationWizardStep.FECHA -> ReservationWizardStep.TURNO
+        ReservationWizardStep.TURNO -> ReservationWizardStep.MESA
+        ReservationWizardStep.MESA -> ReservationWizardStep.JUEGO
+        ReservationWizardStep.JUEGO -> ReservationWizardStep.CONFIRMACION
+        ReservationWizardStep.CONFIRMACION -> null
     }
 
     /**
      * Calcula el paso anterior del wizard.
      */
     private fun ReservationWizardStep.previous(): ReservationWizardStep? = when (this) {
-        ReservationWizardStep.DATE -> null
-        ReservationWizardStep.TURN -> ReservationWizardStep.DATE
-        ReservationWizardStep.TABLE -> ReservationWizardStep.TURN
-        ReservationWizardStep.GAME -> ReservationWizardStep.TABLE
-        ReservationWizardStep.CONFIRMATION -> ReservationWizardStep.GAME
+        ReservationWizardStep.FECHA -> null
+        ReservationWizardStep.TURNO -> ReservationWizardStep.FECHA
+        ReservationWizardStep.MESA -> ReservationWizardStep.TURNO
+        ReservationWizardStep.JUEGO -> ReservationWizardStep.MESA
+        ReservationWizardStep.CONFIRMACION -> ReservationWizardStep.JUEGO
     }
 
     /**

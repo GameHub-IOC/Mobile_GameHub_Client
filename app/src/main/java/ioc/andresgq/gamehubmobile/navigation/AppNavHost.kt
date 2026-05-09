@@ -25,8 +25,10 @@ import ioc.andresgq.gamehubmobile.data.repository.GameRepository
 import ioc.andresgq.gamehubmobile.data.repository.TableRepository
 import ioc.andresgq.gamehubmobile.data.repository.ReservationRepository
 import ioc.andresgq.gamehubmobile.data.repository.TurnRepository
+import ioc.andresgq.gamehubmobile.data.repository.UserRepository
 import ioc.andresgq.gamehubmobile.domain.reservation.UserRole
 import ioc.andresgq.gamehubmobile.ui.screens.admin.GameManagementViewModelFactory
+import ioc.andresgq.gamehubmobile.ui.screens.admin.UsersViewModelFactory
 import ioc.andresgq.gamehubmobile.ui.screens.gamedetail.GameDetailRoute
 import ioc.andresgq.gamehubmobile.ui.screens.gamedetail.GameDetailViewModel
 import ioc.andresgq.gamehubmobile.ui.screens.gamedetail.GameDetailViewModelFactory
@@ -72,6 +74,7 @@ fun AppNavHost(
     categoryRepository: CategoryRepository,
     tableRepository: TableRepository,
     turnRepository: TurnRepository,
+    userRepository: UserRepository,
     onCloseApp: () -> Unit
 ) {
     val navController = rememberNavController()
@@ -242,6 +245,9 @@ fun AppNavHost(
                         turnRepository = turnRepository
                     )
                 )
+                val usersViewModel: ioc.andresgq.gamehubmobile.ui.screens.admin.UsersViewModel = viewModel(
+                    factory = UsersViewModelFactory(userRepository = userRepository)
+                )
                 MainShellRoute(
                     role = UserRole.ADMIN,
                     catalogViewModel = catalogViewModel,
@@ -250,6 +256,7 @@ fun AppNavHost(
                     reservationFlowViewModel = reservationFlowViewModel,
                     reservationListViewModel = reservationListViewModel,
                     gameManagementViewModel = gameManagementViewModel,
+                    usersViewModel = usersViewModel,
                     onGameClick = { gameId ->
                         navController.navigate(AppDestinations.gameDetailRoute(gameId))
                     },

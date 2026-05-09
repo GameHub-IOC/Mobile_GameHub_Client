@@ -14,12 +14,14 @@ import ioc.andresgq.gamehubmobile.data.remote.TableApi
 import ioc.andresgq.gamehubmobile.data.remote.ReservationApi
 import ioc.andresgq.gamehubmobile.data.remote.ReservationRemoteDataSource
 import ioc.andresgq.gamehubmobile.data.remote.TurnApi
+import ioc.andresgq.gamehubmobile.data.remote.UserApi
 import ioc.andresgq.gamehubmobile.data.repository.AuthRepository
 import ioc.andresgq.gamehubmobile.data.repository.CategoryRepository
 import ioc.andresgq.gamehubmobile.data.repository.GameRepository
 import ioc.andresgq.gamehubmobile.data.repository.TableRepository
 import ioc.andresgq.gamehubmobile.data.repository.ReservationRepository
 import ioc.andresgq.gamehubmobile.data.repository.TurnRepository
+import ioc.andresgq.gamehubmobile.data.repository.UserRepository
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -65,6 +67,11 @@ interface AppContainer {
      * Repositorio encargado de crear reservas.
      */
     val reservationRepository: ReservationRepository
+
+    /**
+     * Repositorio para la gestión administrativa de usuarios (solo ADMIN).
+     */
+    val userRepository: UserRepository
 }
 
 /**
@@ -202,6 +209,11 @@ class DefaultAppContainer(context: Context) : AppContainer {
     private val turnApi = retrofit.create(TurnApi::class.java)
 
     /**
+     * Implementación de [UserApi] generada por Retrofit.
+     */
+    private val userApi = retrofit.create(UserApi::class.java)
+
+    /**
      * Implementación de [ReservationApi] generada por Retrofit.
      */
     private val reservationApi = retrofit.create(ReservationApi::class.java)
@@ -278,5 +290,12 @@ class DefaultAppContainer(context: Context) : AppContainer {
      */
     override val reservationRepository: ReservationRepository = ReservationRepository(
         remoteDataSource = reservationRemoteDataSource
+    )
+
+    /**
+     * Repositorio de usuarios expuesto por el contenedor.
+     */
+    override val userRepository: UserRepository = UserRepository(
+        userApi = userApi
     )
 }

@@ -19,7 +19,7 @@ fun validateCurrentStep(state: ReservationWizardState): ReservationStepValidatio
     val draft = state.draft
 
     return when (state.currentStep) {
-        ReservationWizardStep.DATE -> {
+        ReservationWizardStep.FECHA -> {
             if (draft.fecha.isBlank()) {
                 ReservationStepValidation(false, "Selecciona una fecha")
             } else if (!DATE_REGEX.matches(draft.fecha.trim())) {
@@ -29,7 +29,7 @@ fun validateCurrentStep(state: ReservationWizardState): ReservationStepValidatio
             }
         }
 
-        ReservationWizardStep.TURN -> {
+        ReservationWizardStep.TURNO -> {
             if (draft.turnoId == null) {
                 ReservationStepValidation(false, "Selecciona un turno")
             } else {
@@ -37,7 +37,7 @@ fun validateCurrentStep(state: ReservationWizardState): ReservationStepValidatio
             }
         }
 
-        ReservationWizardStep.TABLE -> {
+        ReservationWizardStep.MESA -> {
             val mesaId = draft.mesaId
             if (mesaId == null || mesaId <= 0L) {
                 ReservationStepValidation(false, "Selecciona una mesa válida")
@@ -46,7 +46,7 @@ fun validateCurrentStep(state: ReservationWizardState): ReservationStepValidatio
             }
         }
 
-        ReservationWizardStep.GAME -> {
+        ReservationWizardStep.JUEGO -> {
             if (draft.juegoId == null) {
                 ReservationStepValidation(false, "Selecciona un juego para continuar")
             } else {
@@ -54,7 +54,7 @@ fun validateCurrentStep(state: ReservationWizardState): ReservationStepValidatio
             }
         }
 
-        ReservationWizardStep.CONFIRMATION -> validateForSubmit(state)
+        ReservationWizardStep.CONFIRMACION -> validateForSubmit(state)
     }
 }
 

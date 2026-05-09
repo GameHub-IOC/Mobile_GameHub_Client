@@ -51,6 +51,7 @@ class MainActivity : ComponentActivity() {
                     categoryRepository = appContainer.categoryRepository,
                     tableRepository = appContainer.tableRepository,
                     turnRepository = appContainer.turnRepository,
+                    userRepository = appContainer.userRepository,
                     onCloseApp = { finish() }
                 )
 

@@ -6,11 +6,11 @@ import ioc.andresgq.gamehubmobile.domain.reservation.UserRole
  * Pasos canónicos del wizard de reserva.
  */
 enum class ReservationWizardStep {
-    DATE,
-    TURN,
-    TABLE,
-    GAME,
-    CONFIRMATION
+    FECHA,
+    TURNO,
+    MESA,
+    JUEGO,
+    CONFIRMACION
 }
 
 /**
@@ -62,7 +62,7 @@ data class ReservationTableOption(
  */
 data class ReservationWizardState(
     val role: UserRole,
-    val currentStep: ReservationWizardStep = ReservationWizardStep.DATE,
+    val currentStep: ReservationWizardStep = ReservationWizardStep.FECHA,
     val draft: ReservationDraft = ReservationDraft()
 )
 
